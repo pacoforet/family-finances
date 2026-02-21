@@ -1,0 +1,327 @@
+'use client'
+
+import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { Search, Plus, Filter, CalendarClock, Calendar } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { formatCurrency, formatDate, toMonthKey } from '@/lib/format'
+import { AddTransactionDialog } from '@/components/transactions/AddTransactionDialog'
+import { EditTransactionSheet } from '@/components/transactions/EditTransactionSheet'
+import type { Category } from '@/db/schema'
+
+interface TxWithCategory {
+  id: string
+  fechaInicio: string
+  descripcion: string
+  importe: number
+  state: string | null
+  categoryId: string | null
+  categoryName: string | null
+  categoryColor: string | null
+  notes: string | null
+  isManual: boolean
+  excludeFromBudget: boolean
+  splitAnnual: boolean
+  budgetDate: string | null
+}
+
+export default function TransaccionesPage() {
+  const now = new Date()
+  const searchParams = useSearchParams()
+  const [month, setMonth]             = useState(
+    searchParams.get('month') ?? toMonthKey(now.getFullYear(), now.getMonth() + 1)
+  )
+  const [search, setSearch]           = useState('')
+  const [catFilter, setCatFilter]     = useState('all')
+  const [uncategorized, setUncategorized] = useState(searchParams.get('uncategorized') === 'true')
+  const [transactions, setTransactions] = useState<TxWithCategory[]>([])
+  const [total, setTotal]             = useState(0)
+  const [page, setPage]               = useState(1)
+  const [totalPages, setTotalPages]   = useState(1)
+  const [loading, setLoading]         = useState(true)
+  const [categories, setCategories]   = useState<Category[]>([])
+  const [showAdd, setShowAdd]         = useState(false)
+  const [selectedTx, setSelectedTx]  = useState<TxWithCategory | null>(null)
+
+  useEffect(() => {
+    fetch('/api/categories').then(r => r.json()).then(d => setCategories(d.categories))
+  }, [])
+
+  const loadTransactions = useCallback(async () => {
+    const params = new URLSearchParams({
+      month,
+      page: String(page),
+      limit: '50',
+    })
+    if (catFilter && catFilter !== 'all') params.set('categoryId', catFilter)
+    if (search) params.set('search', search)
+    if (uncategorized) params.set('uncategorized', 'true')
+
+    try {
+      const res = await fetch(`/api/transactions?${params}`)
+      const data = await res.json()
+      setTransactions(data.transactions)
+      setTotal(data.total)
+      setTotalPages(data.totalPages)
+    } finally {
+      setLoading(false)
+    }
+  }, [month, page, catFilter, search, uncategorized])
+
+  useEffect(() => {
+    loadTransactions()
+  }, [loadTransactions])
+
+  const updateCategory = async (txId: string, categoryId: string | null) => {
+    await fetch(`/api/transactions/${txId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categoryId }),
+    })
+    setLoading(true)
+    loadTransactions()
+  }
+
+  // Generate month options (last 12 months)
+  const monthOptions = []
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const key = toMonthKey(d.getFullYear(), d.getMonth() + 1)
+    const label = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(d)
+    monthOptions.push({ key, label })
+  }
+
+  const expenses = transactions.filter(t => t.importe < 0)
+  const totalExpenses = expenses.reduce((s, t) => s + Math.abs(t.importe), 0)
+
+  return (
+    <div className="p-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Transacciones</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            {total} transacciones · {formatCurrency(totalExpenses)} en gastos
+          </p>
+        </div>
+        <Button onClick={() => setShowAdd(true)} size="sm">
+          <Plus className="h-4 w-4 mr-1.5" />
+          Añadir manual
+        </Button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3">
+        <Select value={month} onValueChange={(value) => {
+          setLoading(true)
+          setPage(1)
+          setMonth(value)
+        }}>
+          <SelectTrigger className="w-48">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {monthOptions.map(o => (
+              <SelectItem key={o.key} value={o.key}>{o.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={catFilter} onValueChange={(value) => {
+          setLoading(true)
+          setPage(1)
+          setCatFilter(value)
+        }}>
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="Todas las categorías" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas las categorías</SelectItem>
+            {categories.map(c => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <div className="relative flex-1 min-w-48">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar comercio..."
+            value={search}
+            onChange={e => {
+              setLoading(true)
+              setPage(1)
+              setSearch(e.target.value)
+            }}
+            className="pl-9"
+          />
+        </div>
+
+        <Button
+          variant={uncategorized ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => {
+            setLoading(true)
+            setPage(1)
+            setUncategorized(!uncategorized)
+          }}
+          className="gap-1.5"
+        >
+          <Filter className="h-4 w-4" />
+          Sin categoría
+        </Button>
+      </div>
+
+      {/* Table */}
+      <div className="rounded-lg border overflow-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-muted">
+            <tr>
+              <th className="text-left px-4 py-3 font-medium">Fecha</th>
+              <th className="text-left px-4 py-3 font-medium">Descripción</th>
+              <th className="text-left px-4 py-3 font-medium">Categoría</th>
+              <th className="text-right px-4 py-3 font-medium">Importe</th>
+              <th className="text-left px-4 py-3 font-medium">Notas</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={5} className="text-center py-12 text-muted-foreground">
+                  Cargando...
+                </td>
+              </tr>
+            ) : transactions.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="text-center py-12 text-muted-foreground">
+                  No hay transacciones para este filtro
+                </td>
+              </tr>
+            ) : (
+              transactions.map(tx => (
+                <tr
+                  key={tx.id}
+                  className="border-t hover:bg-muted/50 cursor-pointer"
+                  onClick={() => setSelectedTx(tx)}
+                >
+                  <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                    {formatDate(tx.fechaInicio)}
+                  </td>
+                  <td className="px-4 py-3 max-w-xs">
+                    <span className="truncate block">{tx.descripcion}</span>
+                    {tx.isManual && (
+                      <span className="text-xs text-muted-foreground">Manual</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                    <Select
+                      value={tx.categoryId ?? 'none'}
+                      onValueChange={val => updateCategory(tx.id, val === 'none' ? null : val)}
+                    >
+                      <SelectTrigger className="h-7 text-xs w-40 border-0 bg-transparent p-0 hover:bg-muted rounded-md px-2">
+                        <SelectValue>
+                          {tx.categoryId ? (
+                            <span className="flex items-center gap-1.5">
+                              <span
+                                className="w-2 h-2 rounded-full shrink-0"
+                                style={{ backgroundColor: tx.categoryColor ?? '#9CA3AF' }}
+                              />
+                              {tx.categoryName}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">Sin categoría</span>
+                          )}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sin categoría</SelectItem>
+                        {categories.map(c => (
+                          <SelectItem key={c.id} value={c.id}>
+                            <span className="flex items-center gap-2">
+                              <span
+                                className="w-2 h-2 rounded-full"
+                                style={{ backgroundColor: c.color }}
+                              />
+                              {c.name}
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </td>
+                  <td className={`px-4 py-3 text-right font-mono ${tx.importe < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    <span className="flex items-center justify-end gap-1">
+                      {tx.splitAnnual && (
+                        <span title="Gasto anual prorateado entre 12 meses">
+                          <CalendarClock className="h-3 w-3 text-blue-400 shrink-0" />
+                        </span>
+                      )}
+                      {tx.budgetDate && (
+                        <span title={`Imputado a ${tx.budgetDate.slice(0, 7)}`}>
+                          <Calendar className="h-3 w-3 text-violet-400 shrink-0" />
+                        </span>
+                      )}
+                      {formatCurrency(tx.importe)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-muted-foreground text-xs max-w-xs truncate">
+                    {tx.notes}
+                    {tx.excludeFromBudget && (
+                      <Badge variant="outline" className="text-xs ml-1">Excluido</Badge>
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-muted-foreground">Página {page} de {totalPages}</span>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => {
+              setLoading(true)
+              setPage(p => p - 1)
+            }} disabled={page === 1}>
+              Anterior
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => {
+              setLoading(true)
+              setPage(p => p + 1)
+            }} disabled={page === totalPages}>
+              Siguiente
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <AddTransactionDialog
+        open={showAdd}
+        onOpenChange={setShowAdd}
+        categories={categories}
+        onSaved={() => {
+          setLoading(true)
+          loadTransactions()
+        }}
+      />
+
+      {selectedTx && (
+        <EditTransactionSheet
+          transaction={selectedTx}
+          categories={categories}
+          onClose={() => setSelectedTx(null)}
+          onSaved={() => {
+            setSelectedTx(null)
+            setLoading(true)
+            loadTransactions()
+          }}
+        />
+      )}
+    </div>
+  )
+}
