@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { Search, Plus, Filter, CalendarClock, Calendar } from 'lucide-react'
+import { Search, Plus, Filter, CalendarClock, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { formatCurrency, formatDate, toMonthKey } from '@/lib/format'
+import { formatCurrency, formatDate, toMonthKey, fromMonthKey, formatMonthYear } from '@/lib/format'
 import { AddTransactionDialog } from '@/components/transactions/AddTransactionDialog'
 import { EditTransactionSheet } from '@/components/transactions/EditTransactionSheet'
 import type { Category } from '@/db/schema'
@@ -31,12 +31,27 @@ interface TxWithCategory {
 export default function TransaccionesPage() {
   const now = new Date()
   const searchParams = useSearchParams()
-  const [month, setMonth]             = useState(
-    searchParams.get('month') ?? toMonthKey(now.getFullYear(), now.getMonth() + 1)
-  )
+  const initialMonth = searchParams.get('month')
+    ? fromMonthKey(searchParams.get('month')!)
+    : { year: now.getFullYear(), month: now.getMonth() + 1 }
+  const [year, setYear]               = useState(initialMonth.year)
+  const [month, setMonth]             = useState(initialMonth.month)
   const [search, setSearch]           = useState('')
   const [catFilter, setCatFilter]     = useState('all')
   const [uncategorized, setUncategorized] = useState(searchParams.get('uncategorized') === 'true')
+  const [allMonths, setAllMonths]         = useState(false)
+
+  const prevMonth = () => {
+    setLoading(true); setPage(1); setAllMonths(false)
+    if (month === 1) { setYear(y => y - 1); setMonth(12) }
+    else setMonth(m => m - 1)
+  }
+  const nextMonth = () => {
+    setLoading(true); setPage(1); setAllMonths(false)
+    if (month === 12) { setYear(y => y + 1); setMonth(1) }
+    else setMonth(m => m + 1)
+  }
+  const isCurrentMonth = year === now.getFullYear() && month === now.getMonth() + 1
   const [transactions, setTransactions] = useState<TxWithCategory[]>([])
   const [total, setTotal]             = useState(0)
   const [page, setPage]               = useState(1)
@@ -52,10 +67,10 @@ export default function TransaccionesPage() {
 
   const loadTransactions = useCallback(async () => {
     const params = new URLSearchParams({
-      month,
       page: String(page),
       limit: '50',
     })
+    if (!allMonths) params.set('month', toMonthKey(year, month))
     if (catFilter && catFilter !== 'all') params.set('categoryId', catFilter)
     if (search) params.set('search', search)
     if (uncategorized) params.set('uncategorized', 'true')
@@ -69,7 +84,7 @@ export default function TransaccionesPage() {
     } finally {
       setLoading(false)
     }
-  }, [month, page, catFilter, search, uncategorized])
+  }, [year, month, page, catFilter, search, uncategorized, allMonths])
 
   useEffect(() => {
     loadTransactions()
@@ -83,15 +98,6 @@ export default function TransaccionesPage() {
     })
     setLoading(true)
     loadTransactions()
-  }
-
-  // Generate month options (last 12 months)
-  const monthOptions = []
-  for (let i = 0; i < 12; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    const key = toMonthKey(d.getFullYear(), d.getMonth() + 1)
-    const label = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(d)
-    monthOptions.push({ key, label })
   }
 
   const expenses = transactions.filter(t => t.importe < 0)
@@ -114,20 +120,24 @@ export default function TransaccionesPage() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
-        <Select value={month} onValueChange={(value) => {
-          setLoading(true)
-          setPage(1)
-          setMonth(value)
-        }}>
-          <SelectTrigger className="w-48">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {monthOptions.map(o => (
-              <SelectItem key={o.key} value={o.key}>{o.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* Month switcher */}
+        <div className="flex items-center gap-1">
+          <Button
+            variant={allMonths ? 'default' : 'outline'}
+            onClick={() => { setLoading(true); setPage(1); setAllMonths(!allMonths) }}
+          >
+            Todas
+          </Button>
+          <Button variant="outline" size="icon" onClick={prevMonth} disabled={allMonths}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className={`text-sm font-medium min-w-40 text-center capitalize px-1 ${allMonths ? 'text-muted-foreground' : ''}`}>
+            {formatMonthYear(year, month)}
+          </span>
+          <Button variant="outline" size="icon" onClick={nextMonth} disabled={allMonths || isCurrentMonth}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
 
         <Select value={catFilter} onValueChange={(value) => {
           setLoading(true)

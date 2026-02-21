@@ -7,11 +7,11 @@ import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
   { href: '/dashboard',     label: 'Panel',         icon: LayoutDashboard },
-  { href: '/importar',      label: 'Importar',      icon: Upload },
   { href: '/transacciones', label: 'Transacciones', icon: List },
   { href: '/presupuesto',   label: 'Presupuesto',   icon: PiggyBank },
   { href: '/categorias',    label: 'Categorías',    icon: Tag },
   { href: '/informes',      label: 'Informes',      icon: BarChart3 },
+  { href: '/importar',      label: 'Importar',      icon: Upload },
 ]
 
 export function Sidebar() {
@@ -21,7 +21,7 @@ export function Sidebar() {
     <aside className="w-56 border-r flex flex-col shrink-0 min-h-screen bg-card">
 
       {/* ── Brand header ──────────────────────────────────────────── */}
-      <div className="px-4 py-5 border-b bg-gradient-to-br from-slate-800 to-slate-900">
+      <Link href="/dashboard" className="px-4 py-5 border-b bg-gradient-to-br from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 transition-colors">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-white/10 ring-1 ring-white/20 flex items-center justify-center shrink-0">
             <span className="text-[11px] font-bold text-white tracking-tight leading-none">P&amp;S</span>
@@ -31,7 +31,7 @@ export function Sidebar() {
             <p className="text-[11px] text-white/45 mt-0.5">Paco &amp; Silvia</p>
           </div>
         </div>
-      </div>
+      </Link>
 
       {/* ── Navigation ────────────────────────────────────────────── */}
       <nav className="flex-1 px-2 py-3 space-y-0.5">
