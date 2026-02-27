@@ -1,18 +1,18 @@
-import { sqliteTable, text, real, integer } from 'drizzle-orm/sqlite-core'
+import { pgTable, text, real, integer, boolean } from 'drizzle-orm/pg-core'
 
 // ─── Categories ─────────────────────────────────────────────────────────────
-export const categories = sqliteTable('categories', {
+export const categories = pgTable('categories', {
   id:        text('id').primaryKey(),
   name:      text('name').notNull().unique(),
   color:     text('color').notNull(),
   icon:      text('icon'),
   sortOrder: integer('sort_order').default(0).notNull(),
-  isIncome:  integer('is_income', { mode: 'boolean' }).default(false).notNull(),
+  isIncome:  boolean('is_income').default(false).notNull(),
   createdAt: text('created_at').notNull(),
 })
 
 // ─── Budget Lines ────────────────────────────────────────────────────────────
-export const budgetLines = sqliteTable('budget_lines', {
+export const budgetLines = pgTable('budget_lines', {
   id:         text('id').primaryKey(),
   categoryId: text('category_id').notNull().references(() => categories.id),
   year:       integer('year').notNull(),
@@ -22,19 +22,19 @@ export const budgetLines = sqliteTable('budget_lines', {
 })
 
 // ─── Mapping Rules ───────────────────────────────────────────────────────────
-export const mappingRules = sqliteTable('mapping_rules', {
+export const mappingRules = pgTable('mapping_rules', {
   id:          text('id').primaryKey(),
   categoryId:  text('category_id').notNull().references(() => categories.id),
-  matchType:   text('match_type').notNull(), // 'contains' | 'exact' | 'starts_with' | 'regex'
-  matchValue:  text('match_value').notNull(), // stored lowercase
+  matchType:   text('match_type').notNull(),
+  matchValue:  text('match_value').notNull(),
   priority:    integer('priority').default(100).notNull(),
-  isActive:    integer('is_active', { mode: 'boolean' }).default(true).notNull(),
+  isActive:    boolean('is_active').default(true).notNull(),
   notes:       text('notes'),
   createdAt:   text('created_at').notNull(),
 })
 
 // ─── Import Batches ──────────────────────────────────────────────────────────
-export const importBatches = sqliteTable('import_batches', {
+export const importBatches = pgTable('import_batches', {
   id:            text('id').primaryKey(),
   fileName:      text('file_name').notNull(),
   importedAt:    text('imported_at').notNull(),
@@ -45,12 +45,11 @@ export const importBatches = sqliteTable('import_batches', {
 })
 
 // ─── Transactions ────────────────────────────────────────────────────────────
-export const transactions = sqliteTable('transactions', {
+export const transactions = pgTable('transactions', {
   id:                text('id').primaryKey(),
   importBatchId:     text('import_batch_id').references(() => importBatches.id),
   dedupHash:         text('dedup_hash').unique(),
 
-  // Raw Revolut fields
   tipo:              text('tipo'),
   producto:          text('producto'),
   fechaInicio:       text('fecha_inicio').notNull(),
@@ -62,14 +61,13 @@ export const transactions = sqliteTable('transactions', {
   state:             text('state'),
   saldo:             real('saldo'),
 
-  // App fields
   categoryId:        text('category_id').references(() => categories.id),
-  categorySource:    text('category_source'), // 'auto_rule' | 'manual'
+  categorySource:    text('category_source'),
   notes:             text('notes'),
-  isManual:          integer('is_manual', { mode: 'boolean' }).default(false).notNull(),
-  excludeFromBudget: integer('exclude_from_budget', { mode: 'boolean' }).default(false).notNull(),
-  splitAnnual:       integer('split_annual', { mode: 'boolean' }).default(false).notNull(),
-  budgetDate:        text('budget_date'), // overrides fechaInicio for budget month assignment
+  isManual:          boolean('is_manual').default(false).notNull(),
+  excludeFromBudget: boolean('exclude_from_budget').default(false).notNull(),
+  splitAnnual:       boolean('split_annual').default(false).notNull(),
+  budgetDate:        text('budget_date'),
   createdAt:         text('created_at').notNull(),
   updatedAt:         text('updated_at').notNull(),
 })
