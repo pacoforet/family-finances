@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db, sqlite } from '@/db'
+import { db } from '@/db'
 import { budgetLines } from '@/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
@@ -9,11 +9,8 @@ export async function GET(request: NextRequest) {
   const year = searchParams.get('year')
 
   const rows = year
-    ? await db.query.budgetLines.findMany({
-        where: (bl, { eq }) => eq(bl.year, parseInt(year)),
-        with: { /* categoryId resolved client-side */ },
-      })
-    : await db.select().from(budgetLines).all()
+    ? await db.select().from(budgetLines).where(eq(budgetLines.year, parseInt(year)))
+    : await db.select().from(budgetLines)
 
   return NextResponse.json({ budgetLines: rows })
 }
@@ -30,28 +27,39 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 })
   }
 
-  // Upsert all lines for this month
-  const upsert = sqlite.transaction(() => {
+  await db.transaction(async (tx) => {
     for (const line of lines) {
-      const existing = sqlite.prepare(
-        'SELECT id FROM budget_lines WHERE category_id = ? AND year = ? AND month = ?'
-      ).get(line.categoryId, year, month)
+      const existing = await tx
+        .select({ id: budgetLines.id })
+        .from(budgetLines)
+        .where(and(
+          eq(budgetLines.categoryId, line.categoryId),
+          eq(budgetLines.year, year),
+          eq(budgetLines.month, month)
+        ))
+        .limit(1)
 
-      if (existing) {
-        sqlite.prepare(
-          'UPDATE budget_lines SET amount = ?, notes = ? WHERE category_id = ? AND year = ? AND month = ?'
-        ).run(line.amount, line.notes ?? null, line.categoryId, year, month)
+      if (existing.length > 0) {
+        await tx.update(budgetLines)
+          .set({ amount: line.amount, notes: line.notes ?? null })
+          .where(and(
+            eq(budgetLines.categoryId, line.categoryId),
+            eq(budgetLines.year, year),
+            eq(budgetLines.month, month)
+          ))
       } else {
-        sqlite.prepare(
-          'INSERT INTO budget_lines (id, category_id, year, month, amount, notes) VALUES (?, ?, ?, ?, ?, ?)'
-        ).run(uuidv4(), line.categoryId, year, month, line.amount, line.notes ?? null)
+        await tx.insert(budgetLines).values({
+          id: uuidv4(),
+          categoryId: line.categoryId,
+          year,
+          month,
+          amount: line.amount,
+          notes: line.notes ?? null,
+        })
       }
     }
   })
 
-  upsert()
-
-  // Use Drizzle for the response so column names are camelCased
   const saved = await db.select().from(budgetLines).where(
     and(eq(budgetLines.year, year), eq(budgetLines.month, month))
   )

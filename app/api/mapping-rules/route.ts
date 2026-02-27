@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db, sqlite } from '@/db'
-import { mappingRules } from '@/db/schema'
-import { eq, asc } from 'drizzle-orm'
+import { db } from '@/db'
+import { mappingRules, transactions } from '@/db/schema'
+import { eq, asc, isNull, ne, or, inArray } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
 import { applyMappingRules } from '@/lib/category-mapper'
 import type { MappingRule } from '@/db/schema'
@@ -45,24 +45,20 @@ export async function POST(request: NextRequest) {
   }).returning()
 
   // Re-categorize previously uncategorized transactions that match this new rule
-  const allRules = await db.select().from(mappingRules).all() as MappingRule[]
-  const uncategorized = sqlite.prepare(
-    "SELECT * FROM transactions WHERE category_source != 'manual' OR category_id IS NULL"
-  ).all() as Array<{ id: string; descripcion: string }>
+  const allRules = await db.select().from(mappingRules) as MappingRule[]
+  const uncategorized = await db
+    .select({ id: transactions.id, descripcion: transactions.descripcion })
+    .from(transactions)
+    .where(or(ne(transactions.categorySource, 'manual'), isNull(transactions.categoryId)))
 
-  const toUpdate = uncategorized.filter(tx => {
-    return applyMappingRules(tx.descripcion, allRules) === categoryId
-  })
+  const toUpdate = uncategorized.filter(tx =>
+    applyMappingRules(tx.descripcion, allRules) === categoryId
+  )
 
   if (toUpdate.length > 0) {
-    const update = sqlite.transaction(() => {
-      for (const tx of toUpdate) {
-        sqlite.prepare(
-          "UPDATE transactions SET category_id = ?, category_source = 'auto_rule', updated_at = ? WHERE id = ?"
-        ).run(categoryId, now, tx.id)
-      }
-    })
-    update()
+    await db.update(transactions)
+      .set({ categoryId, categorySource: 'auto_rule', updatedAt: now })
+      .where(inArray(transactions.id, toUpdate.map(tx => tx.id)))
   }
 
   return NextResponse.json({
