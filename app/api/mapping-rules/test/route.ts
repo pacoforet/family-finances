@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Descripción requerida' }, { status: 400 })
   }
 
-  const rules = await db.select().from(mappingRules).all() as MappingRule[]
+  const rules = await db.select().from(mappingRules) as MappingRule[]
   const matched = findMatchingRule(description, rules)
 
   if (!matched) {
