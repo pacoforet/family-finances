@@ -1,29 +1,16 @@
-import Database from 'better-sqlite3'
-import { drizzle } from 'drizzle-orm/better-sqlite3'
+import postgres from 'postgres'
+import { drizzle } from 'drizzle-orm/postgres-js'
 import * as schema from './schema'
-import path from 'path'
-import fs from 'fs'
 
-const DB_PATH = process.env.DATABASE_URL ?? path.join(process.cwd(), 'data', 'family-finances.db')
+const connectionString = process.env.DATABASE_URL!
 
-// Ensure data directory exists
-const dir = path.dirname(DB_PATH)
-if (!fs.existsSync(dir)) {
-  fs.mkdirSync(dir, { recursive: true })
-}
+// Singleton for dev hot reloads
+const globalForDb = global as unknown as { _pgClient: ReturnType<typeof postgres> }
 
-// Singleton pattern - reuse connection across hot reloads in dev
-const globalForDb = global as unknown as { _db: ReturnType<typeof Database> }
-
-const sqlite = globalForDb._db ?? new Database(DB_PATH)
+const client = globalForDb._pgClient ?? postgres(connectionString, { max: 1 })
 
 if (process.env.NODE_ENV !== 'production') {
-  globalForDb._db = sqlite
+  globalForDb._pgClient = client
 }
 
-// Enable WAL mode for better concurrent read performance
-sqlite.pragma('journal_mode = WAL')
-sqlite.pragma('foreign_keys = ON')
-
-export const db = drizzle(sqlite, { schema })
-export { sqlite }
+export const db = drizzle(client, { schema })
