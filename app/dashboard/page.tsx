@@ -24,7 +24,6 @@ export default function DashboardPage() {
   }, [])
 
   useEffect(() => {
-    setLoading(true)
     fetch(`/api/budget/${year}/${month}`)
       .then(r => r.json())
       .then(d => { setSummary(d.summary); setLoading(false) })

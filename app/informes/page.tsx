@@ -60,7 +60,6 @@ export default function InformesPage() {
 
   useEffect(() => {
     if (view !== 'mensual') return
-    setLoading(true)
     fetch(`/api/budget/${year}/${month}`)
       .then(r => r.json())
       .then(d => { setSummary(d.summary); setLoading(false) })
@@ -69,7 +68,6 @@ export default function InformesPage() {
 
   useEffect(() => {
     if (view !== 'anual') return
-    setLoading(true)
     Promise.all(
       Array.from({ length: 12 }, (_, i) =>
         fetch(`/api/budget/${year}/${i + 1}`).then(r => r.json())

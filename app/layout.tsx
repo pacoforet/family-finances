@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import { Sidebar } from '@/components/layout/Sidebar'
+import { ConditionalSidebar } from '@/components/layout/ConditionalSidebar'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
 export const metadata: Metadata = {
@@ -18,7 +18,7 @@ export default function RootLayout({
       <body className="font-sans bg-background text-foreground antialiased">
         <TooltipProvider>
           <div className="flex min-h-screen">
-            <Sidebar />
+            <ConditionalSidebar />
             <main className="flex-1 overflow-auto">
               {children}
             </main>

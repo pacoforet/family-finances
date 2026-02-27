@@ -1,24 +1,55 @@
+import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 
-export function proxy(request: NextRequest) {
-  const pin = process.env.APP_PIN
-  if (!pin) return NextResponse.next()
+export async function proxy(request: NextRequest) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  // Skip unlock page and static assets
-  const { pathname } = request.nextUrl
-  if (pathname === '/unlock' || pathname.startsWith('/_next') || pathname === '/favicon.ico') {
+  // Keep app usable in local setup before envs are configured.
+  if (!supabaseUrl || !supabaseAnonKey) {
     return NextResponse.next()
   }
 
-  // Skip API routes for health and unlock
-  if (pathname === '/api/health' || pathname === '/api/unlock') return NextResponse.next()
+  let response = NextResponse.next({ request })
 
-  // Check cookie
-  const auth = request.cookies.get('auth')
-  if (auth?.value === pin) return NextResponse.next()
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll()
+      },
+      setAll(cookiesToSet) {
+        for (const { name, value } of cookiesToSet) {
+          request.cookies.set(name, value)
+        }
 
-  // Redirect to unlock page
-  return NextResponse.redirect(new URL('/unlock', request.url))
+        response = NextResponse.next({ request })
+
+        for (const { name, value, options } of cookiesToSet) {
+          response.cookies.set(name, value, options)
+        }
+      },
+    },
+  })
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  const { pathname } = request.nextUrl
+
+  // Public routes
+  if (pathname === '/login' || pathname === '/api/health') {
+    if (pathname === '/login' && user) {
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+    return response
+  }
+
+  if (!user) {
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+
+  return response
 }
 
 export const config = {

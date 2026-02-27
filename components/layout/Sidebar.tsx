@@ -1,9 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Upload, List, PiggyBank, Tag, BarChart3 } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { LayoutDashboard, Upload, List, PiggyBank, Tag, BarChart3, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { createClient } from '@/lib/supabase/client'
 
 const NAV_ITEMS = [
   { href: '/dashboard',     label: 'Panel',         icon: LayoutDashboard },
@@ -16,6 +17,14 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+  const supabase = createClient()
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
 
   return (
     <aside className="w-56 border-r flex flex-col shrink-0 min-h-screen bg-card">
@@ -66,10 +75,14 @@ export function Sidebar() {
 
       {/* ── Footer ────────────────────────────────────────────────── */}
       <div className="px-4 py-3 border-t">
-        <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-          <span className="text-[11px] text-muted-foreground">Solo acceso local</span>
-        </div>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+          Cerrar sesión
+        </button>
       </div>
     </aside>
   )

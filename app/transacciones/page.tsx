@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { Suspense, useState, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Search, Plus, Filter, CalendarClock, Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -29,6 +29,14 @@ interface TxWithCategory {
 }
 
 export default function TransaccionesPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Cargando...</div>}>
+      <TransaccionesContent />
+    </Suspense>
+  )
+}
+
+function TransaccionesContent() {
   const now = new Date()
   const searchParams = useSearchParams()
   const initialMonth = searchParams.get('month')
