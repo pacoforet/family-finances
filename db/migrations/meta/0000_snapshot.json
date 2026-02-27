@@ -1,53 +1,48 @@
 {
-  "version": "6",
-  "dialect": "sqlite",
-  "id": "601f466f-ee38-40ae-9e6d-6c81fb87d8d1",
+  "id": "527ca60a-62ee-45cb-bb3b-7cd47c3a5ffa",
   "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
   "tables": {
-    "budget_lines": {
+    "public.budget_lines": {
       "name": "budget_lines",
+      "schema": "",
       "columns": {
         "id": {
           "name": "id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "category_id": {
           "name": "category_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "year": {
           "name": "year",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "month": {
           "name": "month",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "amount": {
           "name": "amount",
           "type": "real",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "notes": {
           "name": "notes",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         }
       },
       "indexes": {},
@@ -68,188 +63,183 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "categories": {
+    "public.categories": {
       "name": "categories",
+      "schema": "",
       "columns": {
         "id": {
           "name": "id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "name": {
           "name": "name",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "color": {
           "name": "color",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "icon": {
           "name": "icon",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "sort_order": {
           "name": "sort_order",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
           "default": 0
+        },
+        "is_income": {
+          "name": "is_income",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
         },
         "created_at": {
           "name": "created_at",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         }
       },
-      "indexes": {
-        "categories_name_unique": {
-          "name": "categories_name_unique",
-          "columns": [
-            "name"
-          ],
-          "isUnique": true
-        }
-      },
+      "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
+      "uniqueConstraints": {
+        "categories_name_unique": {
+          "name": "categories_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "import_batches": {
+    "public.import_batches": {
       "name": "import_batches",
+      "schema": "",
       "columns": {
         "id": {
           "name": "id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "file_name": {
           "name": "file_name",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "imported_at": {
           "name": "imported_at",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "rows_total": {
           "name": "rows_total",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "rows_imported": {
           "name": "rows_imported",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "rows_skipped": {
           "name": "rows_skipped",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "rows_errored": {
           "name": "rows_errored",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         }
       },
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "mapping_rules": {
+    "public.mapping_rules": {
       "name": "mapping_rules",
+      "schema": "",
       "columns": {
         "id": {
           "name": "id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "category_id": {
           "name": "category_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "match_type": {
           "name": "match_type",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "match_value": {
           "name": "match_value",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "priority": {
           "name": "priority",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
           "default": 100
         },
         "is_active": {
           "name": "is_active",
-          "type": "integer",
+          "type": "boolean",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
           "default": true
         },
         "notes": {
           "name": "notes",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         }
       },
       "indexes": {},
@@ -270,80 +260,73 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "checkConstraints": {}
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     },
-    "transactions": {
+    "public.transactions": {
       "name": "transactions",
+      "schema": "",
       "columns": {
         "id": {
           "name": "id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "import_batch_id": {
           "name": "import_batch_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "dedup_hash": {
           "name": "dedup_hash",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "tipo": {
           "name": "tipo",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "producto": {
           "name": "producto",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "fecha_inicio": {
           "name": "fecha_inicio",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "fecha_fin": {
           "name": "fecha_fin",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "descripcion": {
           "name": "descripcion",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "importe": {
           "name": "importe",
           "type": "real",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "comision": {
           "name": "comision",
           "type": "real",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
           "default": 0
         },
         "divisa": {
@@ -351,84 +334,79 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false,
-          "autoincrement": false,
           "default": "'EUR'"
         },
         "state": {
           "name": "state",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "saldo": {
           "name": "saldo",
           "type": "real",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "category_id": {
           "name": "category_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "category_source": {
           "name": "category_source",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "notes": {
           "name": "notes",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
+          "notNull": false
         },
         "is_manual": {
           "name": "is_manual",
-          "type": "integer",
+          "type": "boolean",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
           "default": false
         },
         "exclude_from_budget": {
           "name": "exclude_from_budget",
-          "type": "integer",
+          "type": "boolean",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false,
           "default": false
+        },
+        "split_annual": {
+          "name": "split_annual",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "budget_date": {
+          "name": "budget_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         },
         "updated_at": {
           "name": "updated_at",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
+          "notNull": true
         }
       },
-      "indexes": {
-        "transactions_dedup_hash_unique": {
-          "name": "transactions_dedup_hash_unique",
-          "columns": [
-            "dedup_hash"
-          ],
-          "isUnique": true
-        }
-      },
+      "indexes": {},
       "foreignKeys": {
         "transactions_import_batch_id_import_batches_id_fk": {
           "name": "transactions_import_batch_id_import_batches_id_fk",
@@ -458,18 +436,29 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
+      "uniqueConstraints": {
+        "transactions_dedup_hash_unique": {
+          "name": "transactions_dedup_hash_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "dedup_hash"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
-  "views": {},
   "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
   "_meta": {
+    "columns": {},
     "schemas": {},
-    "tables": {},
-    "columns": {}
-  },
-  "internal": {
-    "indexes": {}
+    "tables": {}
   }
 }
