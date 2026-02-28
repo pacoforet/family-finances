@@ -41,13 +41,14 @@ export default function DashboardPage() {
     if (month === 12) { setYear(y => y + 1); setMonth(1) }
     else setMonth(m => m + 1)
   }
+  const isCurrentMonth = year === now.getFullYear() && month === now.getMonth() + 1
+
   const goToCurrentMonth = () => {
+    if (isCurrentMonth) return
     setLoading(true)
     setYear(now.getFullYear())
     setMonth(now.getMonth() + 1)
   }
-
-  const isCurrentMonth = year === now.getFullYear() && month === now.getMonth() + 1
   const overBudget = summary?.lines.filter(l => l.status === 'over') ?? []
 
   const recentTx = summary
