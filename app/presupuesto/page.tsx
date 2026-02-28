@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { formatCurrency, formatMonthYear } from '@/lib/format'
 import type { Category } from '@/db/schema'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface BudgetLineRow {
   id: string
@@ -28,6 +29,7 @@ export default function PresupuestoPage() {
   const [month, setMonth]   = useState(now.getMonth() + 1)
   const [categories, setCategories] = useState<Category[]>([])
   const [edits, setEdits]   = useState<Record<string, string>>({})
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved]   = useState(false)
   const [cloning, setCloning] = useState(false)
@@ -59,6 +61,7 @@ export default function PresupuestoPage() {
   }, [])
 
   useEffect(() => {
+    setLoading(true)
     fetch(`/api/budget?year=${year}`)
       .then(r => r.json())
       .then(d => {
@@ -72,6 +75,7 @@ export default function PresupuestoPage() {
         }
         setEdits(initial)
       })
+      .finally(() => setLoading(false))
   }, [year, month])
 
   useEffect(() => {
@@ -290,58 +294,83 @@ export default function PresupuestoPage() {
           <CardTitle className="text-base">Partidas presupuestarias</CardTitle>
         </CardHeader>
         <CardContent className="px-0 pb-0">
-          {sortedExpenseCats.map((cat, idx) => {
-            const amount = parseFloat(edits[cat.id] ?? '0') || 0
-            const pct = totalBudget > 0 ? (amount / totalBudget) * 100 : 0
-            return (
-              <div
-                key={cat.id}
-                className={`relative flex items-center justify-between px-6 py-3 transition-colors hover:bg-muted/30 ${
-                  idx < sortedExpenseCats.length - 1 ? 'border-b' : ''
-                }`}
-              >
-                {/* Subtle proportion bar behind the row */}
-                {pct > 0 && (
-                  <div
-                    className="absolute left-0 top-0 h-full opacity-[0.035] pointer-events-none rounded-none"
-                    style={{ width: `${pct}%`, backgroundColor: cat.color }}
-                  />
-                )}
-                <div className="flex items-center gap-3 min-w-0 z-10">
-                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
-                  <span className="font-medium text-sm">{cat.name}</span>
-                  {pct > 0 && (
-                    <span className="text-[10px] text-muted-foreground/60 font-mono">
-                      {pct.toFixed(0)}%
-                    </span>
-                  )}
+          {loading ? (
+            <>
+              {[...Array(8)].map((_, i) => (
+                <div
+                  key={i}
+                  className={`flex items-center justify-between px-6 py-3 ${i < 7 ? 'border-b' : ''}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="w-2.5 h-2.5 rounded-full" />
+                    <Skeleton className="h-4 w-28" />
+                  </div>
+                  <Skeleton className="h-8 w-28 rounded-md" />
                 </div>
-                <div className="flex items-center gap-2 z-10">
-                  <Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={edits[cat.id] ?? '0'}
-                    onChange={e => setEdits(prev => ({ ...prev, [cat.id]: e.target.value }))}
-                    className="w-28 text-right font-mono h-8 text-sm"
-                  />
-                  <span className="text-muted-foreground text-sm w-3">€</span>
+              ))}
+              <div className="px-6 py-4 border-t bg-muted/20 rounded-b-xl">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-5 w-20" />
                 </div>
               </div>
-            )
-          })}
+            </>
+          ) : (
+          <>
+            {sortedExpenseCats.map((cat, idx) => {
+              const amount = parseFloat(edits[cat.id] ?? '0') || 0
+              const pct = totalBudget > 0 ? (amount / totalBudget) * 100 : 0
+              return (
+                <div
+                  key={cat.id}
+                  className={`relative flex items-center justify-between px-6 py-3 transition-colors hover:bg-muted/30 ${
+                    idx < sortedExpenseCats.length - 1 ? 'border-b' : ''
+                  }`}
+                >
+                  {/* Subtle proportion bar behind the row */}
+                  {pct > 0 && (
+                    <div
+                      className="absolute left-0 top-0 h-full opacity-[0.035] pointer-events-none rounded-none"
+                      style={{ width: `${pct}%`, backgroundColor: cat.color }}
+                    />
+                  )}
+                  <div className="flex items-center gap-3 min-w-0 z-10">
+                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
+                    <span className="font-medium text-sm">{cat.name}</span>
+                    {pct > 0 && (
+                      <span className="text-[10px] text-muted-foreground/60 font-mono">
+                        {pct.toFixed(0)}%
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 z-10">
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={edits[cat.id] ?? '0'}
+                      onChange={e => setEdits(prev => ({ ...prev, [cat.id]: e.target.value }))}
+                      className="w-28 text-right font-mono h-8 text-sm"
+                    />
+                    <span className="text-muted-foreground text-sm w-3">€</span>
+                  </div>
+                </div>
+              )
+            })}
 
-          {/* Total footer */}
-          <div className="px-6 py-4 border-t bg-muted/20 rounded-b-xl">
-            <div className="flex items-center justify-between font-semibold">
-              <span>Total mensual</span>
-              <span className="font-mono text-lg">{formatCurrency(totalBudget)}</span>
+            {/* Total footer */}
+            <div className="px-6 py-4 border-t bg-muted/20 rounded-b-xl">
+              <div className="flex items-center justify-between font-semibold">
+                <span>Total mensual</span>
+                <span className="font-mono text-lg">{formatCurrency(totalBudget)}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm text-muted-foreground mt-0.5">
+                <span>Por persona</span>
+                <span className="font-mono">{formatCurrency(totalBudget / 2)}</span>
+              </div>
             </div>
-            <div className="flex items-center justify-between text-sm text-muted-foreground mt-0.5">
-              <span>Por persona</span>
-              <span className="font-mono">{formatCurrency(totalBudget / 2)}</span>
-            </div>
-          </div>
+          </>
+          )}
         </CardContent>
       </Card>
 

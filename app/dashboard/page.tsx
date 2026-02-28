@@ -9,6 +9,7 @@ import { AddTransactionDialog } from '@/components/transactions/AddTransactionDi
 import Link from 'next/link'
 import type { MonthSummary } from '@/lib/budget-calculator'
 import type { Category } from '@/db/schema'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export default function DashboardPage() {
   const now = new Date()
@@ -81,17 +82,78 @@ export default function DashboardPage() {
         <Button variant="outline" size="icon" onClick={nextMonth} disabled={isCurrentMonth}>
           <ChevronRight className="h-4 w-4" />
         </Button>
-        <Button variant="outline" size="sm" onClick={goToCurrentMonth} disabled={isCurrentMonth}>
-          Mes actual
-        </Button>
+        {!isCurrentMonth && (
+          <Button variant="outline" size="sm" onClick={goToCurrentMonth}>
+            Mes actual
+          </Button>
+        )}
       </div>
 
       {/* ── Loading ──────────────────────────────────────────────── */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-3 text-muted-foreground">
-          <div className="w-6 h-6 border-2 border-current border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm">Cargando...</span>
-        </div>
+        <>
+          {/* KPI cards skeleton */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <Card key={i}>
+                <CardContent className="pt-5 pb-4">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-2 flex-1">
+                      <Skeleton className="h-3 w-20" />
+                      <Skeleton className="h-7 w-32" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                    <Skeleton className="h-8 w-8 rounded-lg" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Category + transactions skeleton */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+            <Card className="lg:col-span-3">
+              <CardHeader className="pb-3">
+                <Skeleton className="h-5 w-28" />
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {[...Array(7)].map((_, i) => (
+                  <div key={i} className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="w-2 h-2 rounded-full" />
+                        <Skeleton className="h-4 w-24" />
+                      </div>
+                      <Skeleton className="h-4 w-20" />
+                    </div>
+                    <Skeleton className="h-1.5 w-full rounded-full" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+            <Card className="lg:col-span-2">
+              <CardHeader className="pb-2">
+                <Skeleton className="h-5 w-36" />
+              </CardHeader>
+              <CardContent className="p-0">
+                <div className="divide-y">
+                  {[...Array(7)].map((_, i) => (
+                    <div key={i} className="flex items-center justify-between px-6 py-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <Skeleton className="w-2 h-2 rounded-full" />
+                        <div className="space-y-1">
+                          <Skeleton className="h-3.5 w-32" />
+                          <Skeleton className="h-3 w-20" />
+                        </div>
+                      </div>
+                      <Skeleton className="h-3.5 w-14" />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </>
 
       ) : !summary || summary.lines.length === 0 ? (
         <Card>
