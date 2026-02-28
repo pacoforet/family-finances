@@ -90,10 +90,12 @@ export default function PresupuestoPage() {
   }, [categories])
 
   const prevMonth = () => {
+    setLoading(true)
     if (month === 1) { setYear(y => y - 1); setMonth(12) }
     else setMonth(m => m - 1)
   }
   const nextMonth = () => {
+    setLoading(true)
     if (month === 12) { setYear(y => y + 1); setMonth(1) }
     else setMonth(m => m + 1)
   }
