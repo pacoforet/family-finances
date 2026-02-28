@@ -83,7 +83,7 @@ export default function DashboardPage() {
         <Button variant="outline" size="icon" onClick={nextMonth} disabled={isCurrentMonth}>
           <ChevronRight className="h-4 w-4" />
         </Button>
-        <Button variant="outline" size="sm" onClick={goToCurrentMonth}>
+        <Button variant="outline" size="sm" onClick={goToCurrentMonth} disabled={isCurrentMonth}>
           Mes actual
         </Button>
       </div>
@@ -386,6 +386,7 @@ export default function DashboardPage() {
           fetch(`/api/budget/${year}/${month}`)
             .then(r => r.json())
             .then(d => { setSummary(d.summary); setLoading(false) })
+            .catch(() => setLoading(false))
         }}
       />
     </div>
