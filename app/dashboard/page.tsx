@@ -82,11 +82,9 @@ export default function DashboardPage() {
         <Button variant="outline" size="icon" onClick={nextMonth} disabled={isCurrentMonth}>
           <ChevronRight className="h-4 w-4" />
         </Button>
-        {!isCurrentMonth && (
-          <Button variant="outline" size="sm" onClick={goToCurrentMonth}>
-            Mes actual
-          </Button>
-        )}
+        <Button variant="outline" size="sm" onClick={goToCurrentMonth}>
+          Mes actual
+        </Button>
       </div>
 
       {/* ── Loading ──────────────────────────────────────────────── */}
