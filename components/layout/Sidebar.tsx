@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { LayoutDashboard, Upload, List, PiggyBank, Tag, BarChart3, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
+import { ThemeToggle } from './ThemeToggle'
 
 const NAV_ITEMS = [
   { href: '/dashboard',     label: 'Panel',         icon: LayoutDashboard },
@@ -27,7 +28,7 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="w-56 border-r flex flex-col shrink-0 min-h-screen bg-card">
+    <aside className="w-56 border-r flex flex-col shrink-0 h-screen sticky top-0 bg-card">
 
       {/* ── Brand header ──────────────────────────────────────────── */}
       <Link href="/dashboard" className="px-4 py-5 border-b bg-gradient-to-br from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 transition-colors">
@@ -43,7 +44,7 @@ export function Sidebar() {
       </Link>
 
       {/* ── Navigation ────────────────────────────────────────────── */}
-      <nav className="flex-1 px-2 py-3 space-y-0.5">
+      <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
           return (
@@ -74,11 +75,12 @@ export function Sidebar() {
       </nav>
 
       {/* ── Footer ────────────────────────────────────────────────── */}
-      <div className="px-4 py-3 border-t">
+      <div className="px-4 py-3 border-t bg-card">
+        <ThemeToggle />
         <button
           type="button"
           onClick={handleLogout}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          className="w-full mt-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
         >
           <LogOut className="h-3.5 w-3.5" />
           Cerrar sesión
