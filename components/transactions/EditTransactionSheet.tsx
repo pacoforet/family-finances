@@ -61,6 +61,7 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   // Auto-categorize notification: null = none, number = count categorized
   const [autoCatCount, setAutoCatCount]     = useState<number | null>(null)
+  const [ruleSaved, setRuleSaved]           = useState(false)
 
   // Budget date override (imputar a otro mes)
   const initialBD = parseBudgetDate(tx.budgetDate ?? null)
@@ -82,6 +83,7 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
     setSaving(true)
     setError('')
     setAutoCatCount(null)
+    setRuleSaved(false)
 
     try {
       const res = await fetch(`/api/transactions/${tx.id}`, {
@@ -104,25 +106,38 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
         return
       }
 
-      // Auto-categorize: if a category was assigned, apply it to all
-      // uncategorized transactions with the same description
+      // Auto-categorize + memorize: if a category was assigned, apply it to all
+      // uncategorized transactions with the same description, and save a mapping rule
       if (categoryId !== 'none' && categoryId !== (tx.categoryId ?? 'none')) {
-        const bulkRes = await fetch('/api/transactions/bulk-categorize', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            description: tx.descripcion,
-            categoryId,
+        const [bulkRes, ruleRes] = await Promise.all([
+          fetch('/api/transactions/bulk-categorize', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ description: tx.descripcion, categoryId }),
           }),
-        })
+          fetch('/api/mapping-rules', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              matchType: 'exact',
+              matchValue: tx.descripcion,
+              categoryId,
+            }),
+          }),
+        ])
+
+        let updated = 0
         if (bulkRes.ok) {
-          const { updated } = await bulkRes.json()
-          if (updated > 0) {
-            setAutoCatCount(updated)
-            // Close after a short delay so user can see the notification
-            setTimeout(() => onSaved(), 1800)
-            return
-          }
+          const data = await bulkRes.json()
+          updated = data.updated ?? 0
+        }
+        const ruleOk = ruleRes.ok
+
+        if (updated > 0 || ruleOk) {
+          if (updated > 0) setAutoCatCount(updated)
+          if (ruleOk) setRuleSaved(true)
+          setTimeout(() => onSaved(), 1800)
+          return
         }
       }
 
@@ -177,13 +192,25 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
         {/* ─── SCROLLABLE BODY ──────────────────────────────── */}
         <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
 
-          {/* AUTO-CAT NOTIFICATION */}
-          {autoCatCount !== null && (
-            <div className="flex items-center gap-2.5 rounded-xl bg-green-50 border border-green-200 dark:bg-green-950/40 dark:border-green-800 px-3.5 py-2.5">
-              <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
-              <p className="text-xs text-green-800 dark:text-green-300 font-medium">
-                También se categorizaron {autoCatCount} transacción{autoCatCount !== 1 ? 'es' : ''} más con la misma descripción
-              </p>
+          {/* AUTO-CAT + RULE NOTIFICATION */}
+          {(autoCatCount !== null || ruleSaved) && (
+            <div className="rounded-xl bg-green-50 border border-green-200 dark:bg-green-950/40 dark:border-green-800 px-3.5 py-2.5 space-y-1.5">
+              {ruleSaved && (
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                  <p className="text-xs text-green-800 dark:text-green-300 font-medium">
+                    Memorizado: &quot;{tx.descripcion}&quot; → {categories.find(c => c.id === categoryId)?.name}
+                  </p>
+                </div>
+              )}
+              {autoCatCount !== null && (
+                <div className="flex items-center gap-2.5">
+                  <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                  <p className="text-xs text-green-800 dark:text-green-300 font-medium">
+                    También se categorizaron {autoCatCount} transacción{autoCatCount !== 1 ? 'es' : ''} más con la misma descripción
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
