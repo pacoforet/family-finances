@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/db'
 import { mappingRules, transactions } from '@/db/schema'
-import { eq, asc, isNull, ne, or, inArray } from 'drizzle-orm'
+import { eq, asc, isNull, ne, or, inArray, and } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
 import { applyMappingRules } from '@/lib/category-mapper'
 import type { MappingRule } from '@/db/schema'
@@ -33,16 +33,36 @@ export async function POST(request: NextRequest) {
   }
 
   const now = new Date().toISOString()
-  const rule = await db.insert(mappingRules).values({
-    id:         uuidv4(),
-    categoryId,
-    matchType,
-    matchValue: matchValue.toLowerCase(),
-    priority:   priority ?? 100,
-    isActive:   true,
-    notes:      notes ?? null,
-    createdAt:  now,
-  }).returning()
+  const matchValueLower = matchValue.toLowerCase()
+
+  // Upsert: if an exact-typed rule with the same matchValue already exists, update it
+  const [existing] = await db
+    .select()
+    .from(mappingRules)
+    .where(and(eq(mappingRules.matchType, matchType), eq(mappingRules.matchValue, matchValueLower)))
+    .limit(1)
+
+  let rule: MappingRule
+  if (existing) {
+    const [updated] = await db
+      .update(mappingRules)
+      .set({ categoryId, isActive: true })
+      .where(eq(mappingRules.id, existing.id))
+      .returning()
+    rule = updated
+  } else {
+    const [inserted] = await db.insert(mappingRules).values({
+      id:         uuidv4(),
+      categoryId,
+      matchType,
+      matchValue: matchValueLower,
+      priority:   priority ?? 100,
+      isActive:   true,
+      notes:      notes ?? null,
+      createdAt:  now,
+    }).returning()
+    rule = inserted
+  }
 
   // Re-categorize previously uncategorized transactions that match this new rule
   const allRules = await db.select().from(mappingRules) as MappingRule[]
@@ -62,7 +82,8 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({
-    rule: rule[0],
+    rule,
     recategorized: toUpdate.length,
+    wasUpdated: !!existing,
   }, { status: 201 })
 }
