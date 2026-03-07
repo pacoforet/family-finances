@@ -252,9 +252,9 @@ export default function InformesPage() {
                   <CardContent className="pt-5 pb-4">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">Por persona</p>
+                        <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">Per person</p>
                         <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{formatCurrency(summary.perPerson.actual)}</p>
-                        <p className="text-xs text-muted-foreground mt-1">de {formatCurrency(summary.perPerson.budgeted)}</p>
+                        <p className="text-xs text-muted-foreground mt-1">of {formatCurrency(summary.perPerson.budgeted)}</p>
                       </div>
                       <div className="p-2 rounded-lg bg-violet-50 dark:bg-violet-950">
                         <Users className="h-4 w-4 text-violet-500" />
@@ -269,8 +269,8 @@ export default function InformesPage() {
                 <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-50 border border-red-200 dark:bg-red-950/30 dark:border-red-800 text-sm">
                   <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />
                   <span className="text-red-800 dark:text-red-300">
-                    <span className="font-semibold">Presupuesto superado</span>{' '}
-                    en {overBudget.map(c => c.categoryName).join(', ')}
+                    <span className="font-semibold">Over budget</span>{' '}
+                    in {overBudget.map(c => c.categoryName).join(', ')}
                   </span>
                 </div>
               )}
@@ -281,7 +281,7 @@ export default function InformesPage() {
                 {/* Horizontal progress bars */}
                 <Card className="lg:col-span-3">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base">Por categoría</CardTitle>
+                    <CardTitle className="text-base">By category</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {sortedLines.map(l => {
@@ -298,12 +298,12 @@ export default function InformesPage() {
                               <span className="text-sm font-medium truncate">{l.categoryName}</span>
                               {l.status === 'over' && (
                                 <span className="shrink-0 text-[10px] bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400 px-1.5 py-0.5 rounded-full font-semibold">
-                                  Superado
+                                  Over
                                 </span>
                               )}
                               {l.status === 'warning' && (
                                 <span className="shrink-0 text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 px-1.5 py-0.5 rounded-full font-semibold">
-                                  Atención
+                                  Watch
                                 </span>
                               )}
                             </div>
@@ -332,12 +332,12 @@ export default function InformesPage() {
                 {/* Donut chart */}
                 <Card className="lg:col-span-2">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Distribución</CardTitle>
+                    <CardTitle className="text-base">Distribution</CardTitle>
                   </CardHeader>
                   <CardContent>
                     {pieData.length === 0 ? (
                       <div className="h-48 flex items-center justify-center text-sm text-muted-foreground">
-                        Sin gastos este mes
+                        No spending this month
                       </div>
                     ) : (
                       <>
@@ -385,7 +385,7 @@ export default function InformesPage() {
                           ))}
                           {pieData.length > 7 && (
                             <p className="text-[11px] text-muted-foreground text-center pt-0.5">
-                              +{pieData.length - 7} categorías más
+                              +{pieData.length - 7} more categories
                             </p>
                           )}
                         </div>
@@ -404,7 +404,7 @@ export default function InformesPage() {
           {/* ── Annual bar chart ─────────────────────────────────────────── */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Gasto total por mes — {year}</CardTitle>
+              <CardTitle className="text-base">Total spending by month — {year}</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -414,8 +414,8 @@ export default function InformesPage() {
                   <YAxis tickFormatter={v => `${v}€`} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                   <Tooltip content={<BarTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)' }} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="presupuesto" name="Presupuesto" fill="#E2E8F0" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="total" name="Gastado" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="presupuesto" name="Budget" fill="#E2E8F0" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="total" name="Spent" fill="#3B82F6" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -424,9 +424,9 @@ export default function InformesPage() {
           {/* ── Annual KPIs ───────────────────────────────────────────────── */}
           <div className="grid grid-cols-3 gap-4">
             {[
-              { label: 'Total gastado', value: formatCurrency(yearTotal) },
-              { label: 'Media mensual', value: formatCurrency(yearAvg), note: `${yearMonthsWithData.length} meses con datos` },
-              { label: 'Por persona / año', value: formatCurrency(yearPerson) },
+              { label: 'Total spent', value: formatCurrency(yearTotal) },
+              { label: 'Monthly average', value: formatCurrency(yearAvg), note: `${yearMonthsWithData.length} months with data` },
+              { label: 'Per person / year', value: formatCurrency(yearPerson) },
             ].map(item => (
               <Card key={item.label}>
                 <CardContent className="pt-5 pb-4 text-center">

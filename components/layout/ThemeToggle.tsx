@@ -35,17 +35,17 @@ export function ThemeToggle() {
       type="button"
       onClick={toggleTheme}
       className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-      aria-label={`Cambiar a modo ${theme === 'dark' ? 'claro' : 'oscuro'}`}
+      aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
     >
       {theme === 'dark' ? (
         <>
           <Sun className="h-3.5 w-3.5" />
-          Modo claro
+          Light mode
         </>
       ) : (
         <>
           <Moon className="h-3.5 w-3.5" />
-          Modo oscuro
+          Dark mode
         </>
       )}
     </button>

@@ -256,7 +256,7 @@ export default function DashboardPage() {
                   <div>
                     <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Per person</p>
                     <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{formatCurrency(summary.perPerson.actual)}</p>
-                    <p className="text-xs text-muted-foreground mt-1">de {formatCurrency(summary.perPerson.budgeted)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">of {formatCurrency(summary.perPerson.budgeted)}</p>
                   </div>
                   <div className="p-2 rounded-lg bg-violet-50 dark:bg-violet-950">
                     <Users className="h-4 w-4 text-violet-500" />
@@ -272,7 +272,7 @@ export default function DashboardPage() {
             {/* Progress bars — 3 cols */}
             <Card className="lg:col-span-3">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">Por categoría</CardTitle>
+                <CardTitle className="text-base">By category</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {summary.lines.map(line => {
@@ -289,12 +289,12 @@ export default function DashboardPage() {
                           <span className="text-sm font-medium truncate">{line.categoryName}</span>
                           {line.status === 'over' && (
                             <span className="shrink-0 text-[10px] bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400 px-1.5 py-0.5 rounded-full font-semibold">
-                              Superado
+                              Over
                             </span>
                           )}
                           {line.status === 'warning' && (
                             <span className="shrink-0 text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 px-1.5 py-0.5 rounded-full font-semibold">
-                              Atención
+                              Watch
                             </span>
                           )}
                         </div>
@@ -323,14 +323,14 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                       <span className="text-sm text-amber-700 dark:text-amber-400 font-medium">
-                        {summary.uncategorized.length} transacción{summary.uncategorized.length !== 1 ? 'es' : ''} sin categorizar
+                        {summary.uncategorized.length} uncategorized transaction{summary.uncategorized.length !== 1 ? 's' : ''}
                       </span>
                     </div>
                     <Link
                       href={`/transacciones?month=${toMonthKey(year, month)}&uncategorized=true`}
                       className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
                     >
-                      Categorizar <ArrowRight className="h-3 w-3" />
+                      Review <ArrowRight className="h-3 w-3" />
                     </Link>
                   </div>
                 )}
@@ -341,12 +341,12 @@ export default function DashboardPage() {
             <Card className="lg:col-span-2">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">Últimas transacciones</CardTitle>
+                  <CardTitle className="text-base">Recent transactions</CardTitle>
                   <Link
                     href={`/transacciones?month=${toMonthKey(year, month)}`}
                     className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
                   >
-                    Ver todas <ArrowRight className="h-3 w-3" />
+                    View all <ArrowRight className="h-3 w-3" />
                   </Link>
                 </div>
               </CardHeader>

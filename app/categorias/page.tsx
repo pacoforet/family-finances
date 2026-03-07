@@ -133,11 +133,11 @@ export default function CategoriasPage() {
   }
 
   const deleteCategory = async (cat: Category) => {
-    if (!confirm(`¿Eliminar la categoría "${cat.name}"? Las transacciones perderán esta categoría.`)) return
+    if (!confirm(`Delete category "${cat.name}"? Existing transactions will lose this category.`)) return
     const res = await fetch(`/api/categories/${cat.id}`, { method: 'DELETE' })
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
-      alert(data.error ?? 'No se pudo eliminar la categoría')
+      alert(data.error ?? 'Unable to delete the category.')
       return
     }
     setCategories(prev => prev.filter(c => c.id !== cat.id))
@@ -203,9 +203,9 @@ export default function CategoriasPage() {
   const selectedCategory = categories.find(c => c.id === selectedCat)
 
   const MATCH_TYPE_LABELS: Record<string, string> = {
-    contains:    'Contiene',
-    exact:       'Exacto',
-    starts_with: 'Empieza con',
+    contains:    'Contains',
+    exact:       'Exact match',
+    starts_with: 'Starts with',
     regex:       'Regex',
   }
 
@@ -432,7 +432,7 @@ export default function CategoriasPage() {
                               size="icon"
                               className="h-7 w-7"
                               onClick={() => toggleRule(rule)}
-                              title={rule.isActive ? 'Desactivar' : 'Activar'}
+                              title={rule.isActive ? 'Disable' : 'Enable'}
                             >
                               {rule.isActive
                                 ? <CheckCircle className="h-3.5 w-3.5 text-green-500" />
@@ -463,23 +463,23 @@ export default function CategoriasPage() {
                 <CardContent className="space-y-3">
                   <div className="grid grid-cols-3 gap-3">
                     <div className="space-y-1.5">
-                      <Label>Tipo</Label>
+                      <Label>Type</Label>
                       <Select value={newMatchType} onValueChange={setNewMatchType}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="contains">Contiene</SelectItem>
-                          <SelectItem value="exact">Exacto</SelectItem>
-                          <SelectItem value="starts_with">Empieza con</SelectItem>
+                          <SelectItem value="contains">Contains</SelectItem>
+                          <SelectItem value="exact">Exact match</SelectItem>
+                          <SelectItem value="starts_with">Starts with</SelectItem>
                           <SelectItem value="regex">Regex</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-1.5 col-span-2">
-                      <Label>Valor</Label>
+                      <Label>Value</Label>
                       <Input
-                        placeholder="Ej: suma alella"
+                        placeholder="Example: uber eats"
                         value={newMatchValue}
                         onChange={e => setNewMatchValue(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && addRule()}
@@ -488,7 +488,7 @@ export default function CategoriasPage() {
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     <div className="space-y-1.5">
-                      <Label>Prioridad</Label>
+                      <Label>Priority</Label>
                       <Input
                         type="number"
                         value={newPriority}
@@ -514,19 +514,19 @@ export default function CategoriasPage() {
               {/* Test rules */}
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Probar reglas</CardTitle>
+                  <CardTitle className="text-base">Test rules</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex gap-2">
                     <Input
-                      placeholder="Escribe una descripción de comercio..."
+                      placeholder="Type a merchant description..."
                       value={testInput}
                       onChange={e => { setTestInput(e.target.value); setTestResult(null) }}
                       onKeyDown={e => e.key === 'Enter' && testRule()}
                     />
                     <Button onClick={testRule} disabled={testing || !testInput.trim()} variant="outline">
                       <TestTube className="h-4 w-4 mr-1.5" />
-                      Probar
+                      Test
                     </Button>
                   </div>
 
@@ -539,15 +539,15 @@ export default function CategoriasPage() {
                       {testResult.matched ? (
                         <div className="space-y-1">
                           <p className="font-medium text-green-700 dark:text-green-400">
-                            Coincide con categoría: {testResult.category?.name}
+                            Matches category: {testResult.category?.name}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            Regla: {MATCH_TYPE_LABELS[testResult.rule?.matchType ?? '']} &quot;{testResult.rule?.matchValue}&quot;
-                            (prioridad {testResult.rule?.priority})
+                            Rule: {MATCH_TYPE_LABELS[testResult.rule?.matchType ?? '']} &quot;{testResult.rule?.matchValue}&quot;
+                            (priority {testResult.rule?.priority})
                           </p>
                         </div>
                       ) : (
-                        <p className="text-muted-foreground">Ninguna regla coincide con esta descripción</p>
+                        <p className="text-muted-foreground">No rule matched this description.</p>
                       )}
                     </div>
                   )}
