@@ -11,6 +11,7 @@ import {
 } from 'recharts'
 import type { MonthSummary } from '@/lib/budget-calculator'
 import { useAppSettings } from '@/components/providers/AppSettingsProvider'
+import { useUiCopy } from '@/lib/ui-copy'
 
 // ─── Custom tooltip for donut chart ─────────────────────────────────────────
 function PieTooltip({ active, payload, total }: { active?: boolean; payload?: { name: string; value: number; payload: { color: string } }[]; total: number }) {
@@ -52,6 +53,7 @@ function BarTooltip({ active, payload, label }: { active?: boolean; payload?: { 
 
 export default function InformesPage() {
   const settings = useAppSettings()
+  const copy = useUiCopy()
   const now = new Date()
   const [year, setYear]   = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth() + 1)
@@ -121,8 +123,8 @@ export default function InformesPage() {
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Reports</h1>
-          <p className="text-muted-foreground text-sm">View monthly and yearly spending trends.</p>
+          <h1 className="text-2xl font-semibold">{copy.reports.title}</h1>
+          <p className="text-muted-foreground text-sm">{copy.reports.subtitle}</p>
         </div>
 
         {/* Segmented control */}
@@ -137,7 +139,7 @@ export default function InformesPage() {
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              {v === 'mensual' ? 'Monthly' : 'Yearly'}
+              {v === 'mensual' ? copy.reports.monthly : copy.reports.yearly}
             </button>
           ))}
         </div>
@@ -170,7 +172,7 @@ export default function InformesPage() {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
           <div className="w-6 h-6 border-2 border-current border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm">Loading...</span>
+          <span className="text-sm">{copy.reports.loading}</span>
         </div>
 
       ) : view === 'mensual' ? (
@@ -179,7 +181,7 @@ export default function InformesPage() {
           {(!summary || summary.lines.length === 0) ? (
             <Card>
               <CardContent className="text-center py-12 text-muted-foreground">
-                No data is available for this month yet.
+                {copy.reports.noData}
               </CardContent>
             </Card>
           ) : (
@@ -191,9 +193,9 @@ export default function InformesPage() {
                   <CardContent className="pt-5 pb-4">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">Spent</p>
+                        <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">{copy.reports.spent}</p>
                         <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{formatCurrency(summary.totals.actual)}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{summary.totals.pct}% of budget</p>
+                        <p className="text-xs text-muted-foreground mt-1">{summary.totals.pct}% {copy.reports.of} {copy.reports.budget.toLowerCase()}</p>
                       </div>
                       <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
                         <Wallet className="h-4 w-4 text-gray-500" />
@@ -206,9 +208,9 @@ export default function InformesPage() {
                   <CardContent className="pt-5 pb-4">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">Budget</p>
+                        <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">{copy.reports.budget}</p>
                         <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{formatCurrency(summary.totals.budgeted)}</p>
-                        <p className="text-xs text-muted-foreground mt-1">Planned total</p>
+                        <p className="text-xs text-muted-foreground mt-1">{copy.reports.plannedTotal}</p>
                       </div>
                       <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950">
                         <TrendingUp className="h-4 w-4 text-blue-500" />
@@ -225,7 +227,7 @@ export default function InformesPage() {
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">
-                          {savings >= 0 ? 'Ahorro' : 'Exceso'}
+                          {savings >= 0 ? copy.reports.remaining : copy.reports.over}
                         </p>
                         <p className={`text-2xl font-bold mt-1 font-mono tracking-tight ${
                           savings >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-600'
@@ -233,7 +235,7 @@ export default function InformesPage() {
                           {savings >= 0 ? '+' : ''}{formatCurrency(savings)}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          {savings >= 0 ? 'Bajo presupuesto' : 'Sobre presupuesto'}
+                          {savings >= 0 ? copy.reports.underBudget : copy.reports.overBudget}
                         </p>
                       </div>
                       <div className={`p-2 rounded-lg ${
@@ -252,9 +254,9 @@ export default function InformesPage() {
                   <CardContent className="pt-5 pb-4">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">Per person</p>
+                        <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">{copy.reports.perPerson}</p>
                         <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{formatCurrency(summary.perPerson.actual)}</p>
-                        <p className="text-xs text-muted-foreground mt-1">of {formatCurrency(summary.perPerson.budgeted)}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{copy.reports.of} {formatCurrency(summary.perPerson.budgeted)}</p>
                       </div>
                       <div className="p-2 rounded-lg bg-violet-50 dark:bg-violet-950">
                         <Users className="h-4 w-4 text-violet-500" />
@@ -269,8 +271,8 @@ export default function InformesPage() {
                 <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-50 border border-red-200 dark:bg-red-950/30 dark:border-red-800 text-sm">
                   <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />
                   <span className="text-red-800 dark:text-red-300">
-                    <span className="font-semibold">Over budget</span>{' '}
-                    in {overBudget.map(c => c.categoryName).join(', ')}
+                    <span className="font-semibold">{copy.reports.overBudget}</span>{' '}
+                    {copy.dashboard.in} {overBudget.map(c => c.categoryName).join(', ')}
                   </span>
                 </div>
               )}
@@ -281,7 +283,7 @@ export default function InformesPage() {
                 {/* Horizontal progress bars */}
                 <Card className="lg:col-span-3">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-base">By category</CardTitle>
+                    <CardTitle className="text-base">{copy.reports.byCategory}</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {sortedLines.map(l => {
@@ -298,12 +300,12 @@ export default function InformesPage() {
                               <span className="text-sm font-medium truncate">{l.categoryName}</span>
                               {l.status === 'over' && (
                                 <span className="shrink-0 text-[10px] bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400 px-1.5 py-0.5 rounded-full font-semibold">
-                                  Over
+                                  {copy.reports.over}
                                 </span>
                               )}
                               {l.status === 'warning' && (
                                 <span className="shrink-0 text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 px-1.5 py-0.5 rounded-full font-semibold">
-                                  Watch
+                                  {copy.reports.watch}
                                 </span>
                               )}
                             </div>
@@ -332,12 +334,12 @@ export default function InformesPage() {
                 {/* Donut chart */}
                 <Card className="lg:col-span-2">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-base">Distribution</CardTitle>
+                    <CardTitle className="text-base">{copy.reports.distribution}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     {pieData.length === 0 ? (
                       <div className="h-48 flex items-center justify-center text-sm text-muted-foreground">
-                        No spending this month
+                        {copy.reports.noSpending}
                       </div>
                     ) : (
                       <>
@@ -365,7 +367,7 @@ export default function InformesPage() {
                           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                             <div className="text-center">
                               <div className="text-base font-bold font-mono leading-none">{formatCurrency(pieTotal)}</div>
-                              <div className="text-[10px] text-muted-foreground mt-0.5">total</div>
+                              <div className="text-[10px] text-muted-foreground mt-0.5">{copy.reports.totalSpent.toLowerCase()}</div>
                             </div>
                           </div>
                         </div>
@@ -385,7 +387,7 @@ export default function InformesPage() {
                           ))}
                           {pieData.length > 7 && (
                             <p className="text-[11px] text-muted-foreground text-center pt-0.5">
-                              +{pieData.length - 7} more categories
+                              +{pieData.length - 7} {copy.reports.moreCategories}
                             </p>
                           )}
                         </div>
@@ -404,7 +406,7 @@ export default function InformesPage() {
           {/* ── Annual bar chart ─────────────────────────────────────────── */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Total spending by month — {year}</CardTitle>
+              <CardTitle className="text-base">{copy.reports.totalSpendingByMonth} — {year}</CardTitle>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
@@ -414,8 +416,8 @@ export default function InformesPage() {
                   <YAxis tickFormatter={v => `${v}€`} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
                   <Tooltip content={<BarTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)' }} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="presupuesto" name="Budget" fill="#E2E8F0" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="total" name="Spent" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="presupuesto" name={copy.reports.budget} fill="#E2E8F0" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="total" name={copy.reports.spent} fill="#3B82F6" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -424,9 +426,9 @@ export default function InformesPage() {
           {/* ── Annual KPIs ───────────────────────────────────────────────── */}
           <div className="grid grid-cols-3 gap-4">
             {[
-              { label: 'Total spent', value: formatCurrency(yearTotal) },
-              { label: 'Monthly average', value: formatCurrency(yearAvg), note: `${yearMonthsWithData.length} months with data` },
-              { label: 'Per person / year', value: formatCurrency(yearPerson) },
+              { label: copy.reports.totalSpent, value: formatCurrency(yearTotal) },
+              { label: copy.reports.monthlyAverage, value: formatCurrency(yearAvg), note: `${yearMonthsWithData.length} ${copy.reports.monthsWithData}` },
+              { label: copy.reports.perPersonYear, value: formatCurrency(yearPerson) },
             ].map(item => (
               <Card key={item.label}>
                 <CardContent className="pt-5 pb-4 text-center">

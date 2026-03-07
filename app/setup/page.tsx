@@ -8,18 +8,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CURRENCY_OPTIONS, LOCALE_OPTIONS } from '@/lib/app-config'
+import { getUiCopy } from '@/lib/ui-copy'
 
 const STARTER_OPTIONS = [
-  {
-    value: 'blank',
-    title: 'Start blank',
-    description: 'No categories, no budgets, and no starter rules.',
-  },
-  {
-    value: 'template',
-    title: 'Use starter template',
-    description: 'Create common categories and a few starter categorization rules.',
-  },
+  { value: 'blank' },
+  { value: 'template' },
 ] as const
 
 export default function SetupPage() {
@@ -33,6 +26,7 @@ export default function SetupPage() {
   const [householdName, setHouseholdName] = useState('My Household')
   const [defaultCurrency, setDefaultCurrency] = useState('USD')
   const [locale, setLocale] = useState('en-US')
+  const copy = getUiCopy(locale)
   const [timezone, setTimezone] = useState(guessedTimezone)
   const [householdSize, setHouseholdSize] = useState('2')
   const [starterPreset, setStarterPreset] = useState<'blank' | 'template'>('template')
@@ -63,14 +57,14 @@ export default function SetupPage() {
 
       const data = await response.json()
       if (!response.ok) {
-        setError(data.error ?? 'Unable to save setup.')
+        setError(data.error ?? copy.setup.saveError)
         return
       }
 
       router.push('/dashboard')
       router.refresh()
     } catch {
-      setError('Unable to save setup.')
+      setError(copy.setup.saveError)
     } finally {
       setSaving(false)
     }
@@ -82,15 +76,14 @@ export default function SetupPage() {
         <div className="grid w-full gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-5">
             <p className="text-sm font-medium uppercase tracking-[0.24em] text-emerald-700">
-              First-run setup
+              {copy.setup.eyebrow}
             </p>
             <div className="space-y-3">
               <h1 className="max-w-xl text-4xl font-semibold tracking-tight text-slate-900">
-                Configure your own household budget workspace.
+                {copy.setup.title}
               </h1>
               <p className="max-w-xl text-base text-slate-600">
-                This starter is designed for one household per deployment. Choose your defaults,
-                then decide whether you want a blank app or a prebuilt budget template.
+                {copy.setup.body}
               </p>
             </div>
 
@@ -106,8 +99,14 @@ export default function SetupPage() {
                       : 'border-slate-200 bg-white hover:border-slate-300'
                   }`}
                 >
-                  <p className="font-medium text-slate-900">{option.title}</p>
-                  <p className="mt-1 text-sm text-slate-600">{option.description}</p>
+                  <p className="font-medium text-slate-900">
+                    {option.value === 'blank' ? copy.setup.startBlank : copy.setup.starterTemplate}
+                  </p>
+                  <p className="mt-1 text-sm text-slate-600">
+                    {option.value === 'blank'
+                      ? copy.setup.startBlankDescription
+                      : copy.setup.starterTemplateDescription}
+                  </p>
                 </button>
               ))}
             </div>
@@ -115,20 +114,20 @@ export default function SetupPage() {
 
           <Card className="border-slate-200 shadow-sm">
             <CardHeader>
-              <CardTitle>Workspace details</CardTitle>
+              <CardTitle>{copy.setup.detailsTitle}</CardTitle>
               <CardDescription>
-                These values control branding, formatting, and starter content.
+                {copy.setup.detailsBody}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="app-name">App name</Label>
+                  <Label htmlFor="app-name">{copy.setup.appName}</Label>
                   <Input id="app-name" value={appName} onChange={(event) => setAppName(event.target.value)} />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="household-name">Household name</Label>
+                  <Label htmlFor="household-name">{copy.setup.householdName}</Label>
                   <Input
                     id="household-name"
                     value={householdName}
@@ -138,7 +137,7 @@ export default function SetupPage() {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>Locale</Label>
+                    <Label>{copy.setup.locale}</Label>
                     <Select value={locale} onValueChange={setLocale}>
                       <SelectTrigger>
                         <SelectValue />
@@ -154,7 +153,7 @@ export default function SetupPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label>Default currency</Label>
+                    <Label>{copy.setup.currency}</Label>
                     <Select value={defaultCurrency} onValueChange={setDefaultCurrency}>
                       <SelectTrigger>
                         <SelectValue />
@@ -172,7 +171,7 @@ export default function SetupPage() {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="timezone">Timezone</Label>
+                    <Label htmlFor="timezone">{copy.setup.timezone}</Label>
                     <Input
                       id="timezone"
                       value={timezone}
@@ -182,7 +181,7 @@ export default function SetupPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="household-size">Household size</Label>
+                    <Label htmlFor="household-size">{copy.setup.householdSize}</Label>
                     <Input
                       id="household-size"
                       type="number"
@@ -202,14 +201,14 @@ export default function SetupPage() {
                     disabled={starterPreset === 'blank'}
                   />
                   <span>
-                    Create starter monthly budgets for the current month.
+                    {copy.setup.starterBudget}
                   </span>
                 </label>
 
                 {error && <p className="text-sm text-red-600">{error}</p>}
 
                 <Button type="submit" className="w-full" disabled={saving}>
-                  {saving ? 'Saving setup...' : 'Finish setup'}
+                  {saving ? copy.setup.saving : copy.setup.finish}
                 </Button>
               </form>
             </CardContent>

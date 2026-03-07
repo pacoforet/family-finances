@@ -7,21 +7,22 @@ import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { ThemeToggle } from './ThemeToggle'
 import { useAppSettings } from '@/components/providers/AppSettingsProvider'
-
-const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/transacciones', label: 'Transactions', icon: List },
-  { href: '/presupuesto', label: 'Budget', icon: PiggyBank },
-  { href: '/categorias', label: 'Categories', icon: Tag },
-  { href: '/informes', label: 'Reports', icon: BarChart3 },
-  { href: '/importar', label: 'Import', icon: Upload },
-]
+import { useUiCopy } from '@/lib/ui-copy'
 
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
   const settings = useAppSettings()
+  const copy = useUiCopy()
+  const navItems = [
+    { href: '/dashboard', label: copy.nav.dashboard, icon: LayoutDashboard },
+    { href: '/transacciones', label: copy.nav.transactions, icon: List },
+    { href: '/presupuesto', label: copy.nav.budget, icon: PiggyBank },
+    { href: '/categorias', label: copy.nav.categories, icon: Tag },
+    { href: '/informes', label: copy.nav.reports, icon: BarChart3 },
+    { href: '/importar', label: copy.nav.import, icon: Upload },
+  ]
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -49,7 +50,7 @@ export function Sidebar() {
 
       {/* ── Navigation ────────────────────────────────────────────── */}
       <nav className="flex-1 overflow-y-auto px-2 py-3 space-y-0.5">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+        {navItems.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
           return (
             <Link
@@ -87,7 +88,7 @@ export function Sidebar() {
           className="w-full mt-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
         >
           <LogOut className="h-3.5 w-3.5" />
-          Sign out
+          {copy.nav.signOut}
         </button>
       </div>
     </aside>

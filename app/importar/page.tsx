@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { parseRevolutCSV } from '@/lib/csv-parser'
 import type { RevolutRow } from '@/lib/csv-parser'
+import { useUiCopy } from '@/lib/ui-copy'
 
 interface ImportResult {
   imported: number
@@ -17,6 +18,7 @@ interface ImportResult {
 }
 
 export default function ImportarPage() {
+  const copy = useUiCopy()
   const [dragging, setDragging] = useState(false)
   const [file, setFile]         = useState<File | null>(null)
   const [preview, setPreview]   = useState<RevolutRow[]>([])
@@ -65,14 +67,14 @@ export default function ImportarPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        setError(data.error ?? 'Import failed.')
+        setError(data.error ?? copy.import.importFailed)
       } else {
         setResult(data)
         setFile(null)
         setPreview([])
       }
     } catch {
-      setError('Error de red al importar')
+      setError(copy.import.networkError)
     } finally {
       setImporting(false)
     }
@@ -88,10 +90,8 @@ export default function ImportarPage() {
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Import statement</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Upload a CSV statement to import your latest transactions.
-        </p>
+        <h1 className="text-2xl font-semibold">{copy.import.title}</h1>
+        <p className="text-muted-foreground text-sm mt-1">{copy.import.subtitle}</p>
       </div>
 
       {result ? (
@@ -99,28 +99,28 @@ export default function ImportarPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-500" />
-              Import completed
+              {copy.import.completed}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-3 gap-4">
               <div className="text-center p-4 bg-green-50 dark:bg-green-950 rounded-lg">
                 <div className="text-2xl font-bold text-green-600">{result.imported}</div>
-                <div className="text-sm text-muted-foreground">Imported</div>
+                <div className="text-sm text-muted-foreground">{copy.import.imported}</div>
               </div>
               <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-950 rounded-lg">
                 <div className="text-2xl font-bold text-yellow-600">{result.dupes}</div>
-                <div className="text-sm text-muted-foreground">Duplicates</div>
+                <div className="text-sm text-muted-foreground">{copy.import.duplicates}</div>
               </div>
               <div className="text-center p-4 bg-red-50 dark:bg-red-950 rounded-lg">
                 <div className="text-2xl font-bold text-red-600">{result.errors}</div>
-                <div className="text-sm text-muted-foreground">Errors</div>
+                <div className="text-sm text-muted-foreground">{copy.import.errors}</div>
               </div>
             </div>
             <div className="flex gap-3">
-              <Button onClick={reset} variant="outline">Import another file</Button>
+              <Button onClick={reset} variant="outline">{copy.import.importAnother}</Button>
               <Button asChild>
-                <a href="/transacciones">View transactions</a>
+                <a href="/transacciones">{copy.import.viewTransactions}</a>
               </Button>
             </div>
           </CardContent>
@@ -143,8 +143,8 @@ export default function ImportarPage() {
               onClick={() => document.getElementById('csv-input')?.click()}
             >
               <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
-              <p className="text-base font-medium">Drop a CSV statement here</p>
-              <p className="text-sm text-muted-foreground mt-1">or click to browse</p>
+              <p className="text-base font-medium">{copy.import.dropCsv}</p>
+              <p className="text-sm text-muted-foreground mt-1">{copy.import.clickBrowse}</p>
             <input
                 id="csv-input"
                 type="file"
@@ -162,7 +162,7 @@ export default function ImportarPage() {
                     <div>
                       <CardTitle className="text-base">{file.name}</CardTitle>
                       <CardDescription>
-                        {preview.length} valid rows · {previewSkipped} skipped
+                        {preview.length} {copy.import.validRows} · {previewSkipped} {copy.import.skipped}
                       </CardDescription>
                     </div>
                   </div>
@@ -177,10 +177,10 @@ export default function ImportarPage() {
                   <table className="w-full text-sm">
                     <thead className="bg-muted sticky top-0">
                       <tr>
-                        <th className="text-left px-3 py-2 font-medium">Date</th>
-                        <th className="text-left px-3 py-2 font-medium">Description</th>
-                        <th className="text-left px-3 py-2 font-medium">Tipo</th>
-                        <th className="text-right px-3 py-2 font-medium">Amount</th>
+                        <th className="text-left px-3 py-2 font-medium">{copy.import.date}</th>
+                        <th className="text-left px-3 py-2 font-medium">{copy.import.description}</th>
+                        <th className="text-left px-3 py-2 font-medium">{copy.import.type}</th>
+                        <th className="text-right px-3 py-2 font-medium">{copy.import.amount}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -217,11 +217,11 @@ export default function ImportarPage() {
                     disabled={importing || preview.length === 0}
                   >
                     {importing
-                      ? 'Importing...'
-                      : `Import ${preview.length} transactions`
+                      ? copy.import.importing
+                      : `${copy.import.importCount} ${preview.length}`
                     }
                   </Button>
-                  <Button variant="outline" onClick={reset}>Cancel</Button>
+                  <Button variant="outline" onClick={reset}>{copy.import.cancel}</Button>
                 </div>
               </CardContent>
             </Card>
@@ -232,13 +232,13 @@ export default function ImportarPage() {
       {/* Instructions */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">CSV import notes</CardTitle>
+          <CardTitle className="text-base">{copy.import.howToExport}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-sm space-y-2 text-muted-foreground">
-            <p>The current parser is optimized for Revolut-style CSV exports.</p>
-            <p>If your bank exports a CSV with similar columns, it may work, but support for arbitrary bank formats is not guaranteed yet.</p>
-            <p>Recommended flow: export your account statement as CSV, then upload it here.</p>
+            {copy.import.steps.map((step) => (
+              <p key={step}>{step}</p>
+            ))}
           </div>
         </CardContent>
       </Card>

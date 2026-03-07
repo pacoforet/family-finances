@@ -11,6 +11,7 @@ import { formatCurrency, formatDate, toMonthKey, fromMonthKey, formatMonthYear }
 import { AddTransactionDialog } from '@/components/transactions/AddTransactionDialog'
 import { EditTransactionSheet } from '@/components/transactions/EditTransactionSheet'
 import type { Category } from '@/db/schema'
+import { useUiCopy } from '@/lib/ui-copy'
 
 interface TxWithCategory {
   id: string
@@ -37,6 +38,7 @@ export default function TransaccionesPage() {
 }
 
 function TransaccionesContent() {
+  const copy = useUiCopy()
   const now = new Date()
   const searchParams = useSearchParams()
   const initialMonth = searchParams.get('month')
@@ -115,14 +117,14 @@ function TransaccionesContent() {
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Transactions</h1>
+          <h1 className="text-2xl font-semibold">{copy.transactions.title}</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {total} transactions · {formatCurrency(totalExpenses)} in expenses
+            {total} {copy.transactions.title.toLowerCase()} · {formatCurrency(totalExpenses)} {copy.transactions.inExpenses}
           </p>
         </div>
         <Button onClick={() => setShowAdd(true)} size="sm">
           <Plus className="h-4 w-4 mr-1.5" />
-          Add manual
+          {copy.transactions.addManual}
         </Button>
       </div>
 
@@ -134,7 +136,7 @@ function TransaccionesContent() {
             variant={allMonths ? 'default' : 'outline'}
             onClick={() => { setLoading(true); setPage(1); setAllMonths(!allMonths) }}
           >
-            Todas
+            {copy.transactions.all}
           </Button>
           <Button variant="outline" size="icon" onClick={prevMonth} disabled={allMonths}>
             <ChevronLeft className="h-4 w-4" />
@@ -153,10 +155,10 @@ function TransaccionesContent() {
           setCatFilter(value)
         }}>
           <SelectTrigger className="w-44">
-            <SelectValue placeholder="All categories" />
+            <SelectValue placeholder={copy.transactions.allCategories} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All categories</SelectItem>
+            <SelectItem value="all">{copy.transactions.allCategories}</SelectItem>
             {categories.map(c => (
               <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
             ))}
@@ -166,7 +168,7 @@ function TransaccionesContent() {
         <div className="relative flex-1 min-w-48">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search merchant..."
+            placeholder={copy.transactions.searchMerchant}
             value={search}
             onChange={e => {
               setLoading(true)
@@ -188,7 +190,7 @@ function TransaccionesContent() {
           className="gap-1.5"
         >
           <Filter className="h-4 w-4" />
-          No category
+          {copy.transactions.noCategory}
         </Button>
       </div>
 
@@ -197,24 +199,24 @@ function TransaccionesContent() {
         <table className="w-full text-sm">
           <thead className="bg-muted">
             <tr>
-              <th className="text-left px-4 py-3 font-medium">Date</th>
-              <th className="text-left px-4 py-3 font-medium">Description</th>
-              <th className="text-left px-4 py-3 font-medium">Category</th>
-              <th className="text-right px-4 py-3 font-medium">Amount</th>
-              <th className="text-left px-4 py-3 font-medium">Notes</th>
+              <th className="text-left px-4 py-3 font-medium">{copy.transactions.date}</th>
+              <th className="text-left px-4 py-3 font-medium">{copy.transactions.description}</th>
+              <th className="text-left px-4 py-3 font-medium">{copy.transactions.category}</th>
+              <th className="text-right px-4 py-3 font-medium">{copy.transactions.amount}</th>
+              <th className="text-left px-4 py-3 font-medium">{copy.transactions.notes}</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
                 <td colSpan={5} className="text-center py-12 text-muted-foreground">
-                  Loading...
+                  {copy.transactions.loading}
                 </td>
               </tr>
             ) : transactions.length === 0 ? (
               <tr>
                 <td colSpan={5} className="text-center py-12 text-muted-foreground">
-                  No transactions matched this filter.
+                  {copy.transactions.noMatches}
                 </td>
               </tr>
             ) : (
@@ -230,7 +232,7 @@ function TransaccionesContent() {
                   <td className="px-4 py-3 max-w-xs">
                     <span className="truncate block">{tx.descripcion}</span>
                     {tx.isManual && (
-                      <span className="text-xs text-muted-foreground">Manual</span>
+                      <span className="text-xs text-muted-foreground">{copy.transactions.addManual}</span>
                     )}
                   </td>
                   <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
@@ -249,12 +251,12 @@ function TransaccionesContent() {
                               {tx.categoryName}
                             </span>
                           ) : (
-                            <span className="text-muted-foreground">No category</span>
+                            <span className="text-muted-foreground">{copy.transactions.noCategory}</span>
                           )}
                         </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">No category</SelectItem>
+                        <SelectItem value="none">{copy.transactions.noCategory}</SelectItem>
                         {categories.map(c => (
                           <SelectItem key={c.id} value={c.id}>
                             <span className="flex items-center gap-2">
@@ -272,7 +274,7 @@ function TransaccionesContent() {
                   <td className={`px-4 py-3 text-right font-mono ${tx.importe < 0 ? 'text-red-600' : 'text-green-600'}`}>
                     <span className="flex items-center justify-end gap-1">
                       {tx.splitAnnual && (
-                        <span title="Gasto anual prorateado entre 12 meses">
+                        <span title={copy.transactions.splitAnnualTitle}>
                           <CalendarClock className="h-3 w-3 text-blue-400 shrink-0" />
                         </span>
                       )}
@@ -287,7 +289,7 @@ function TransaccionesContent() {
                   <td className="px-4 py-3 text-muted-foreground text-xs max-w-xs truncate">
                     {tx.notes}
                     {tx.excludeFromBudget && (
-                      <Badge variant="outline" className="text-xs ml-1">Excluido</Badge>
+                      <Badge variant="outline" className="text-xs ml-1">{copy.editTx.excludeBudget}</Badge>
                     )}
                   </td>
                 </tr>
@@ -300,19 +302,19 @@ function TransaccionesContent() {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Página {page} de {totalPages}</span>
+          <span className="text-muted-foreground">{copy.transactions.page} {page} {copy.transactions.of} {totalPages}</span>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => {
               setLoading(true)
               setPage(p => p - 1)
             }} disabled={page === 1}>
-              Anterior
+              {copy.transactions.of === 'de' ? 'Anterior' : 'Previous'}
             </Button>
             <Button variant="outline" size="sm" onClick={() => {
               setLoading(true)
               setPage(p => p + 1)
             }} disabled={page === totalPages}>
-              Siguiente
+              {copy.transactions.of === 'de' ? 'Siguiente' : 'Next'}
             </Button>
           </div>
         </div>

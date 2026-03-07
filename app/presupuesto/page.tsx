@@ -9,6 +9,7 @@ import { formatCurrency, formatMonthYear } from '@/lib/format'
 import type { Category } from '@/db/schema'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAppSettings } from '@/components/providers/AppSettingsProvider'
+import { useUiCopy } from '@/lib/ui-copy'
 
 interface BudgetLineRow {
   id: string
@@ -21,6 +22,7 @@ interface BudgetLineRow {
 
 export default function PresupuestoPage() {
   const settings = useAppSettings()
+  const copy = useUiCopy()
   const now = new Date()
   const [year, setYear]     = useState(now.getFullYear())
   const [month, setMonth]   = useState(now.getMonth() + 1)
@@ -124,14 +126,14 @@ export default function PresupuestoPage() {
         l => l.year === prevYearVal && l.month === prevMonthVal
       )
       if (prevLines.length === 0) {
-        alert(`No saved budget found for ${prevMonthVal}/${prevYearVal}.`)
+        alert(`${copy.budget.noSavedBudget} ${prevMonthVal}/${prevYearVal}.`)
       } else {
         const next = { ...edits }
         for (const l of prevLines) next[l.categoryId] = String(l.amount)
         setEdits(next)
       }
     } catch {
-      alert('Unable to copy the previous month.')
+      alert(copy.budget.unableCopy)
     } finally {
       setCloning(false)
     }
@@ -186,8 +188,8 @@ export default function PresupuestoPage() {
 
       {/* ── Header ───────────────────────────────────────────────── */}
       <div>
-        <h1 className="text-2xl font-semibold">Monthly budget</h1>
-        <p className="text-sm text-muted-foreground">Plan how much you expect to spend in each category.</p>
+        <h1 className="text-2xl font-semibold">{copy.budget.title}</h1>
+        <p className="text-sm text-muted-foreground">{copy.budget.subtitle}</p>
       </div>
 
       {/* ── Month navigator + actions ────────────────────────────── */}
@@ -203,7 +205,7 @@ export default function PresupuestoPage() {
         </Button>
         <Button variant="outline" size="sm" onClick={handleClone} disabled={cloning} className="ml-1">
           <Copy className="h-4 w-4 mr-1.5" />
-          {cloning ? 'Copying...' : 'Copy previous month'}
+          {cloning ? copy.budget.copying : copy.budget.copyPrevious}
         </Button>
         <Button
           variant="outline"
@@ -211,7 +213,7 @@ export default function PresupuestoPage() {
           onClick={() => { setShowApplyDialog(true); setApplyResult(null) }}
         >
           <CalendarRange className="h-4 w-4 mr-1.5" />
-          Apply to multiple months
+          {copy.budget.applyMultiple}
         </Button>
       </div>
 
@@ -221,14 +223,14 @@ export default function PresupuestoPage() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm flex items-center justify-between">
               <span>
-                Copy the budget from{' '}
-                <span className="font-semibold capitalize">{formatMonthYear(year, month)}</span> a:
+                {copy.budget.copyFrom}{' '}
+                <span className="font-semibold capitalize">{formatMonthYear(year, month)}</span> {copy.budget.to}:
               </span>
               <button
                 onClick={toggleAll}
                 className="text-xs font-normal text-muted-foreground hover:text-foreground transition-colors"
               >
-                {selectedTargets.size === applyTargets.length ? 'Clear all' : 'Select all'}
+                {selectedTargets.size === applyTargets.length ? copy.budget.clearAll : copy.budget.selectAll}
               </button>
             </CardTitle>
           </CardHeader>
@@ -264,7 +266,7 @@ export default function PresupuestoPage() {
 
             {applyResult && (
               <div className="px-3 py-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-sm text-emerald-700 dark:text-emerald-400">
-                ✓ Budget applied to {applyResult.done} {applyResult.done === 1 ? 'month' : 'months'}
+                ✓ {copy.budget.applied} {applyResult.done} {applyResult.done === 1 ? copy.budget.month : copy.budget.months}
               </div>
             )}
 
@@ -275,12 +277,12 @@ export default function PresupuestoPage() {
                 size="sm"
               >
                 {applying
-                  ? `Applying ${applyProgress}/${selectedTargets.size}...`
-                  : `Apply to ${selectedTargets.size} ${selectedTargets.size === 1 ? 'month' : 'months'}`
+                  ? `${copy.budget.applying} ${applyProgress}/${selectedTargets.size}...`
+                  : `${copy.budget.applyTo} ${selectedTargets.size} ${selectedTargets.size === 1 ? copy.budget.month : copy.budget.months}`
                 }
               </Button>
               <Button variant="ghost" size="sm" onClick={() => { setShowApplyDialog(false); setApplyResult(null) }}>
-                Close
+                {copy.budget.close}
               </Button>
             </div>
           </CardContent>
@@ -290,7 +292,7 @@ export default function PresupuestoPage() {
       {/* ── Budget lines ─────────────────────────────────────────── */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Budget categories</CardTitle>
+          <CardTitle className="text-base">{copy.budget.categories}</CardTitle>
         </CardHeader>
         <CardContent className="px-0 pb-0">
           {loading ? (
@@ -360,11 +362,11 @@ export default function PresupuestoPage() {
             {/* Total footer */}
             <div className="px-6 py-4 border-t bg-muted/20 rounded-b-xl">
               <div className="flex items-center justify-between font-semibold">
-                <span>Monthly total</span>
+                <span>{copy.budget.monthlyTotal}</span>
                 <span className="font-mono text-lg">{formatCurrency(totalBudget)}</span>
               </div>
               <div className="flex items-center justify-between text-sm text-muted-foreground mt-0.5">
-                <span>Per person</span>
+                <span>{copy.budget.perPerson}</span>
                 <span className="font-mono">{formatCurrency(totalBudget / Math.max(settings.householdSize, 1))}</span>
               </div>
             </div>
@@ -380,8 +382,8 @@ export default function PresupuestoPage() {
         className={`transition-all ${saved ? 'bg-emerald-600 hover:bg-emerald-600' : ''}`}
       >
         {saved
-          ? <><Check className="h-4 w-4 mr-1.5" />Saved</>
-          : <><Save className="h-4 w-4 mr-1.5" />{saving ? 'Saving...' : 'Save budget'}</>
+          ? <><Check className="h-4 w-4 mr-1.5" />{copy.budget.saved}</>
+          : <><Save className="h-4 w-4 mr-1.5" />{saving ? copy.budget.saving : copy.budget.saveBudget}</>
         }
       </Button>
     </div>

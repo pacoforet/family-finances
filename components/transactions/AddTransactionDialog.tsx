@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import type { Category } from '@/db/schema'
+import { useUiCopy } from '@/lib/ui-copy'
 
 interface Props {
   open: boolean
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function AddTransactionDialog({ open, onOpenChange, categories, onSaved }: Props) {
+  const copy = useUiCopy()
   const [descripcion, setDescripcion] = useState('')
   const [importe, setImporte]         = useState('')
   const [fecha, setFecha]             = useState(new Date().toISOString().slice(0, 10))
@@ -27,12 +29,12 @@ export function AddTransactionDialog({ open, onOpenChange, categories, onSaved }
 
   const handleSubmit = async () => {
     if (!descripcion || !importe || !fecha) {
-      setError('Description, amount, and date are required.')
+      setError(copy.addTx.required)
       return
     }
     const amount = parseFloat(importe.replace(',', '.'))
     if (isNaN(amount)) {
-      setError('Invalid amount.')
+      setError(copy.addTx.invalidAmount)
       return
     }
 
@@ -54,7 +56,7 @@ export function AddTransactionDialog({ open, onOpenChange, categories, onSaved }
 
       if (!res.ok) {
         const d = await res.json()
-        setError(d.error ?? 'Unable to save transaction.')
+        setError(d.error ?? copy.addTx.saveError)
       } else {
         setDescripcion('')
         setImporte('')
@@ -73,14 +75,14 @@ export function AddTransactionDialog({ open, onOpenChange, categories, onSaved }
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Add manual expense</DialogTitle>
+          <DialogTitle>{copy.addTx.title}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
-            <Label>Description</Label>
+            <Label>{copy.addTx.description}</Label>
             <Input
-              placeholder="Example: Grocery run"
+              placeholder={copy.addTx.description}
               value={descripcion}
               onChange={e => setDescripcion(e.target.value)}
             />
@@ -88,7 +90,7 @@ export function AddTransactionDialog({ open, onOpenChange, categories, onSaved }
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Amount</Label>
+              <Label>{copy.addTx.amount}</Label>
               <Input
                 placeholder="25.50"
                 value={importe}
@@ -96,7 +98,7 @@ export function AddTransactionDialog({ open, onOpenChange, categories, onSaved }
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Date</Label>
+              <Label>{copy.addTx.date}</Label>
               <Input
                 type="date"
                 value={fecha}
@@ -106,10 +108,10 @@ export function AddTransactionDialog({ open, onOpenChange, categories, onSaved }
           </div>
 
           <div className="space-y-1.5">
-            <Label>Category</Label>
+            <Label>{copy.addTx.category}</Label>
             <Select value={categoryId} onValueChange={setCategoryId}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a category..." />
+                <SelectValue placeholder={copy.addTx.selectCategory} />
               </SelectTrigger>
               <SelectContent>
                 {categories.map(c => (
@@ -125,9 +127,9 @@ export function AddTransactionDialog({ open, onOpenChange, categories, onSaved }
           </div>
 
           <div className="space-y-1.5">
-            <Label>Notes (optional)</Label>
+            <Label>{copy.addTx.notes}</Label>
             <Textarea
-              placeholder="Any extra context..."
+              placeholder={copy.addTx.notesPlaceholder}
               value={notes}
               onChange={e => setNotes(e.target.value)}
               rows={2}
@@ -138,9 +140,9 @@ export function AddTransactionDialog({ open, onOpenChange, categories, onSaved }
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{copy.addTx.cancel}</Button>
           <Button onClick={handleSubmit} disabled={saving}>
-            {saving ? 'Saving...' : 'Save'}
+            {saving ? copy.addTx.saving : copy.addTx.save}
           </Button>
         </DialogFooter>
       </DialogContent>

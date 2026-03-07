@@ -11,9 +11,11 @@ import type { MonthSummary } from '@/lib/budget-calculator'
 import type { Category } from '@/db/schema'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAppSettings } from '@/components/providers/AppSettingsProvider'
+import { useUiCopy } from '@/lib/ui-copy'
 
 export default function DashboardPage() {
   const settings = useAppSettings()
+  const copy = useUiCopy()
   const now = new Date()
   const [year, setYear]       = useState(now.getFullYear())
   const [month, setMonth]     = useState(now.getMonth() + 1)
@@ -65,14 +67,14 @@ export default function DashboardPage() {
       {/* ── Header ───────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Dashboard</h1>
+          <h1 className="text-2xl font-semibold">{copy.dashboard.title}</h1>
           <p className="text-sm text-muted-foreground">
-            Budget versus actual spending for {settings.householdName}
+            {copy.dashboard.subtitle} {settings.householdName}
           </p>
         </div>
         <Button onClick={() => setShowAdd(true)}>
           <Plus className="h-4 w-4 mr-1.5" />
-          Add expense
+          {copy.dashboard.addExpense}
         </Button>
       </div>
 
@@ -88,7 +90,7 @@ export default function DashboardPage() {
           <ChevronRight className="h-4 w-4" />
         </Button>
         <Button variant="outline" size="sm" onClick={goToCurrentMonth} disabled={isCurrentMonth}>
-          Current month
+          {copy.dashboard.currentMonth}
         </Button>
       </div>
 
@@ -161,9 +163,9 @@ export default function DashboardPage() {
       ) : !summary || summary.lines.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-14 gap-3">
-            <p className="text-muted-foreground text-sm">No budget has been configured for this month yet.</p>
+            <p className="text-muted-foreground text-sm">{copy.dashboard.noBudget}</p>
             <Button asChild size="sm" variant="outline">
-              <Link href="/presupuesto">Set up budget</Link>
+              <Link href="/presupuesto">{copy.dashboard.setupBudget}</Link>
             </Button>
           </CardContent>
         </Card>
@@ -175,7 +177,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-sm">
               <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
               <span className="text-red-800 dark:text-red-300">
-                <span className="font-semibold">Over budget</span>{' '}in{' '}
+                <span className="font-semibold">{copy.dashboard.overBudget}</span>{' '}{copy.dashboard.in}{' '}
                 {overBudget.map(l => l.categoryName).join(', ')}
               </span>
             </div>
@@ -188,9 +190,9 @@ export default function DashboardPage() {
               <CardContent className="pt-5 pb-4">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Spent</p>
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{copy.dashboard.spent}</p>
                     <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{formatCurrency(summary.totals.actual)}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{summary.totals.pct}% of budget</p>
+                    <p className="text-xs text-muted-foreground mt-1">{summary.totals.pct}% {copy.dashboard.of.toLowerCase()} {copy.dashboard.budget.toLowerCase()}</p>
                   </div>
                   <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800">
                     <Wallet className="h-4 w-4 text-slate-500" />
@@ -203,9 +205,9 @@ export default function DashboardPage() {
               <CardContent className="pt-5 pb-4">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Budget</p>
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{copy.dashboard.budget}</p>
                     <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{formatCurrency(summary.totals.budgeted)}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Monthly total</p>
+                    <p className="text-xs text-muted-foreground mt-1">{copy.dashboard.monthlyTotal}</p>
                   </div>
                   <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950">
                     <TrendingUp className="h-4 w-4 text-blue-500" />
@@ -223,7 +225,7 @@ export default function DashboardPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                      {summary.totals.variance >= 0 ? 'Remaining' : 'Over'}
+                      {summary.totals.variance >= 0 ? copy.dashboard.remaining : copy.dashboard.over}
                     </p>
                     <p className={`text-2xl font-bold mt-1 font-mono tracking-tight ${
                       summary.totals.variance >= 0
@@ -233,7 +235,7 @@ export default function DashboardPage() {
                       {summary.totals.variance >= 0 ? '+' : ''}{formatCurrency(summary.totals.variance)}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {summary.totals.variance >= 0 ? 'Under budget' : 'Over budget'}
+                      {summary.totals.variance >= 0 ? copy.dashboard.underBudget : copy.dashboard.overBudgetLabel}
                     </p>
                   </div>
                   <div className={`p-2 rounded-lg ${
@@ -254,9 +256,9 @@ export default function DashboardPage() {
               <CardContent className="pt-5 pb-4">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Per person</p>
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{copy.dashboard.perPerson}</p>
                     <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{formatCurrency(summary.perPerson.actual)}</p>
-                    <p className="text-xs text-muted-foreground mt-1">of {formatCurrency(summary.perPerson.budgeted)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{copy.dashboard.of} {formatCurrency(summary.perPerson.budgeted)}</p>
                   </div>
                   <div className="p-2 rounded-lg bg-violet-50 dark:bg-violet-950">
                     <Users className="h-4 w-4 text-violet-500" />
@@ -272,7 +274,7 @@ export default function DashboardPage() {
             {/* Progress bars — 3 cols */}
             <Card className="lg:col-span-3">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base">By category</CardTitle>
+                <CardTitle className="text-base">{copy.dashboard.byCategory}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {summary.lines.map(line => {
@@ -289,12 +291,12 @@ export default function DashboardPage() {
                           <span className="text-sm font-medium truncate">{line.categoryName}</span>
                           {line.status === 'over' && (
                             <span className="shrink-0 text-[10px] bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400 px-1.5 py-0.5 rounded-full font-semibold">
-                              Over
+                              {copy.dashboard.over}
                             </span>
                           )}
                           {line.status === 'warning' && (
                             <span className="shrink-0 text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 px-1.5 py-0.5 rounded-full font-semibold">
-                              Watch
+                              {copy.dashboard.watch}
                             </span>
                           )}
                         </div>
@@ -323,14 +325,14 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
                       <span className="text-sm text-amber-700 dark:text-amber-400 font-medium">
-                        {summary.uncategorized.length} uncategorized transaction{summary.uncategorized.length !== 1 ? 's' : ''}
+                        {summary.uncategorized.length} {summary.uncategorized.length === 1 ? copy.dashboard.uncategorizedOne : copy.dashboard.uncategorized}
                       </span>
                     </div>
                     <Link
                       href={`/transacciones?month=${toMonthKey(year, month)}&uncategorized=true`}
                       className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
                     >
-                      Review <ArrowRight className="h-3 w-3" />
+                      {copy.dashboard.review} <ArrowRight className="h-3 w-3" />
                     </Link>
                   </div>
                 )}
@@ -341,12 +343,12 @@ export default function DashboardPage() {
             <Card className="lg:col-span-2">
               <CardHeader className="pb-2">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">Recent transactions</CardTitle>
+                  <CardTitle className="text-base">{copy.dashboard.recentTransactions}</CardTitle>
                   <Link
                     href={`/transacciones?month=${toMonthKey(year, month)}`}
                     className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
                   >
-                    View all <ArrowRight className="h-3 w-3" />
+                    {copy.dashboard.viewAll} <ArrowRight className="h-3 w-3" />
                   </Link>
                 </div>
               </CardHeader>

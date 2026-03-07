@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { createClient } from '@/lib/supabase/client'
 import { useAppSettings } from '@/components/providers/AppSettingsProvider'
+import { useUiCopy } from '@/lib/ui-copy'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -17,6 +18,7 @@ export default function LoginPage() {
   const router = useRouter()
   const supabase = createClient()
   const settings = useAppSettings()
+  const copy = useUiCopy()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -30,7 +32,7 @@ export default function LoginPage() {
     })
 
     if (signInError) {
-      setError('Incorrect email or password.')
+      setError(copy.login.invalidCredentials)
       setLoading(false)
       return
     }
@@ -51,7 +53,7 @@ export default function LoginPage() {
         <div>
           <h1 className="text-2xl font-semibold">{settings.appName}</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Sign in with your Supabase account to continue.
+            {copy.login.subtitle}
           </p>
         </div>
 
@@ -66,7 +68,7 @@ export default function LoginPage() {
 
           <Input
             type="password"
-            placeholder="Password"
+            placeholder={copy.login.password}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
@@ -74,7 +76,7 @@ export default function LoginPage() {
           {error && <p className="text-sm text-red-600">{error}</p>}
 
           <Button type="submit" className="w-full" disabled={!email || !password || loading}>
-            {loading ? 'Signing in...' : 'Sign in'}
+            {loading ? copy.login.signingIn : copy.login.signIn}
           </Button>
         </form>
       </div>

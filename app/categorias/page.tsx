@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import type { Category, MappingRule } from '@/db/schema'
+import { useUiCopy } from '@/lib/ui-copy'
 
 const PRESET_COLORS = [
   '#3B82F6', '#14B8A6', '#8B5CF6', '#22C55E', '#F97316',
@@ -23,6 +24,7 @@ interface TestResult {
 }
 
 export default function CategoriasPage() {
+  const copy = useUiCopy()
   const [categories, setCategories]   = useState<Category[]>([])
   const [selectedCat, setSelectedCat] = useState<string | null>(null)
   const [rules, setRules]             = useState<MappingRule[]>([])
@@ -83,7 +85,7 @@ export default function CategoriasPage() {
     const data = await res.json()
     setSavingCat(false)
     if (!res.ok) {
-      setCatError(data.error ?? 'Unable to create the category.')
+      setCatError(data.error ?? copy.categories.create)
       return
     }
     setCategories(prev => [...prev, data.category])
@@ -133,11 +135,11 @@ export default function CategoriasPage() {
   }
 
   const deleteCategory = async (cat: Category) => {
-    if (!confirm(`Delete category "${cat.name}"? Existing transactions will lose this category.`)) return
+    if (!confirm(`${copy.categories.deleteConfirmPrefix} "${cat.name}"? ${copy.categories.deleteConfirmSuffix}`)) return
     const res = await fetch(`/api/categories/${cat.id}`, { method: 'DELETE' })
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
-      alert(data.error ?? 'Unable to delete the category.')
+      alert(data.error ?? copy.categories.deleteError)
       return
     }
     setCategories(prev => prev.filter(c => c.id !== cat.id))
@@ -203,17 +205,17 @@ export default function CategoriasPage() {
   const selectedCategory = categories.find(c => c.id === selectedCat)
 
   const MATCH_TYPE_LABELS: Record<string, string> = {
-    contains:    'Contains',
-    exact:       'Exact match',
-    starts_with: 'Starts with',
+    contains:    copy.categories.contains,
+    exact:       copy.categories.exact,
+    starts_with: copy.categories.startsWith,
     regex:       'Regex',
   }
 
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Categories and rules</h1>
-        <p className="text-muted-foreground text-sm">Manage manual categories and auto-categorization rules.</p>
+        <h1 className="text-2xl font-semibold">{copy.categories.title}</h1>
+        <p className="text-muted-foreground text-sm">{copy.categories.subtitle}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -221,7 +223,7 @@ export default function CategoriasPage() {
         <Card className="lg:col-span-1">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center justify-between">
-              Categories
+              {copy.categories.categories}
               <Button
                 variant="ghost"
                 size="sm"
@@ -229,7 +231,7 @@ export default function CategoriasPage() {
                 onClick={() => { setShowAddCat(v => !v); setCatError(null) }}
               >
                 <Plus className="h-3.5 w-3.5 mr-1" />
-                Nueva
+                {copy.categories.new}
               </Button>
             </CardTitle>
           </CardHeader>
@@ -316,7 +318,7 @@ export default function CategoriasPage() {
                       }`}
                     >
                       <TrendingUp className="h-3 w-3" />
-                      {editCatIsIncome ? 'Income' : 'Expense'}
+                      {editCatIsIncome ? copy.categories.income : copy.categories.expense}
                     </button>
                     <div className="flex gap-1">
                       <Button
@@ -353,7 +355,7 @@ export default function CategoriasPage() {
                             ? 'bg-white/20 text-white'
                             : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400'
                         }`}>
-                          Income
+                          {copy.categories.income}
                         </span>
                       )}
                     </button>
@@ -364,21 +366,21 @@ export default function CategoriasPage() {
                       <button
                         onClick={e => { e.stopPropagation(); toggleIsIncome(cat) }}
                         className={`p-1 rounded hover:bg-black/10 ${cat.isIncome ? 'text-emerald-500' : ''}`}
-                        title={cat.isIncome ? 'Mark as expense' : 'Mark as income'}
+                        title={cat.isIncome ? copy.categories.markExpense : copy.categories.markIncome}
                       >
                         <TrendingUp className="h-3 w-3" />
                       </button>
                       <button
                         onClick={e => { e.stopPropagation(); startEditCat(cat) }}
                         className="p-1 rounded hover:bg-black/10"
-                        title="Edit"
+                        title={copy.categories.edit}
                       >
                         <Pencil className="h-3 w-3" />
                       </button>
                       <button
                         onClick={e => { e.stopPropagation(); deleteCategory(cat) }}
                         className="p-1 rounded hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900"
-                        title="Delete"
+                        title={copy.categories.delete}
                       >
                         <Trash2 className="h-3 w-3" />
                       </button>
@@ -401,13 +403,13 @@ export default function CategoriasPage() {
                       className="w-3 h-3 rounded-full"
                       style={{ backgroundColor: selectedCategory.color }}
                     />
-                    Rules for {selectedCategory.name}
+                    {copy.categories.rulesFor} {selectedCategory.name}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {rules.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-4 text-center">
-                      No rules yet. Add one to categorize future transactions automatically.
+                      {copy.categories.noRules}
                     </p>
                   ) : (
                     <div className="space-y-2">
@@ -432,7 +434,7 @@ export default function CategoriasPage() {
                               size="icon"
                               className="h-7 w-7"
                               onClick={() => toggleRule(rule)}
-                              title={rule.isActive ? 'Disable' : 'Enable'}
+                              title={rule.isActive ? copy.categories.disable : copy.categories.enable}
                             >
                               {rule.isActive
                                 ? <CheckCircle className="h-3.5 w-3.5 text-green-500" />
@@ -458,28 +460,28 @@ export default function CategoriasPage() {
               {/* Add rule form */}
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Add rule</CardTitle>
+                  <CardTitle className="text-base">{copy.categories.addRule}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="grid grid-cols-3 gap-3">
                     <div className="space-y-1.5">
-                      <Label>Type</Label>
+                      <Label>{copy.categories.type}</Label>
                       <Select value={newMatchType} onValueChange={setNewMatchType}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="contains">Contains</SelectItem>
-                          <SelectItem value="exact">Exact match</SelectItem>
-                          <SelectItem value="starts_with">Starts with</SelectItem>
+                          <SelectItem value="contains">{copy.categories.contains}</SelectItem>
+                          <SelectItem value="exact">{copy.categories.exact}</SelectItem>
+                          <SelectItem value="starts_with">{copy.categories.startsWith}</SelectItem>
                           <SelectItem value="regex">Regex</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-1.5 col-span-2">
-                      <Label>Value</Label>
+                      <Label>{copy.categories.value}</Label>
                       <Input
-                        placeholder="Example: uber eats"
+                        placeholder={copy.categories.exampleMerchant}
                         value={newMatchValue}
                         onChange={e => setNewMatchValue(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && addRule()}
@@ -488,7 +490,7 @@ export default function CategoriasPage() {
                   </div>
                   <div className="grid grid-cols-3 gap-3">
                     <div className="space-y-1.5">
-                      <Label>Priority</Label>
+                      <Label>{copy.categories.priority}</Label>
                       <Input
                         type="number"
                         value={newPriority}
@@ -496,9 +498,9 @@ export default function CategoriasPage() {
                       />
                     </div>
                     <div className="space-y-1.5 col-span-2">
-                      <Label>Notes (optional)</Label>
+                      <Label>{copy.categories.notesOptional}</Label>
                       <Input
-                        placeholder="Optional description..."
+                        placeholder={copy.categories.optionalDescription}
                         value={newNotes}
                         onChange={e => setNewNotes(e.target.value)}
                       />
@@ -506,7 +508,7 @@ export default function CategoriasPage() {
                   </div>
                   <Button onClick={addRule} disabled={saving || !newMatchValue.trim()} size="sm">
                     <Plus className="h-4 w-4 mr-1.5" />
-                    {saving ? 'Saving...' : 'Add rule'}
+                    {saving ? copy.categories.saving : copy.categories.addRule}
                   </Button>
                 </CardContent>
               </Card>
@@ -514,19 +516,19 @@ export default function CategoriasPage() {
               {/* Test rules */}
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Test rules</CardTitle>
+                  <CardTitle className="text-base">{copy.categories.testRules}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex gap-2">
                     <Input
-                      placeholder="Type a merchant description..."
+                      placeholder={copy.categories.typeMerchantDescription}
                       value={testInput}
                       onChange={e => { setTestInput(e.target.value); setTestResult(null) }}
                       onKeyDown={e => e.key === 'Enter' && testRule()}
                     />
                     <Button onClick={testRule} disabled={testing || !testInput.trim()} variant="outline">
                       <TestTube className="h-4 w-4 mr-1.5" />
-                      Test
+                      {copy.categories.test}
                     </Button>
                   </div>
 
@@ -539,15 +541,15 @@ export default function CategoriasPage() {
                       {testResult.matched ? (
                         <div className="space-y-1">
                           <p className="font-medium text-green-700 dark:text-green-400">
-                            Matches category: {testResult.category?.name}
+                            {copy.categories.matchesCategory} {testResult.category?.name}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            Rule: {MATCH_TYPE_LABELS[testResult.rule?.matchType ?? '']} &quot;{testResult.rule?.matchValue}&quot;
-                            (priority {testResult.rule?.priority})
+                            {copy.categories.rule} {MATCH_TYPE_LABELS[testResult.rule?.matchType ?? '']} &quot;{testResult.rule?.matchValue}&quot;
+                            ({copy.categories.priorityLabel} {testResult.rule?.priority})
                           </p>
                         </div>
                       ) : (
-                        <p className="text-muted-foreground">No rule matched this description.</p>
+                        <p className="text-muted-foreground">{copy.categories.noRuleMatched}</p>
                       )}
                     </div>
                   )}

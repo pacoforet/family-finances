@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Moon, Sun } from 'lucide-react'
+import { useUiCopy } from '@/lib/ui-copy'
 
 type Theme = 'light' | 'dark'
 
@@ -12,6 +13,7 @@ function applyTheme(theme: Theme) {
 }
 
 export function ThemeToggle() {
+  const copy = useUiCopy()
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window === 'undefined') return 'light'
     const stored = localStorage.getItem('theme') as Theme | null
@@ -35,17 +37,17 @@ export function ThemeToggle() {
       type="button"
       onClick={toggleTheme}
       className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-      aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+      aria-label={theme === 'dark' ? copy.nav.switchToLight : copy.nav.switchToDark}
     >
       {theme === 'dark' ? (
         <>
           <Sun className="h-3.5 w-3.5" />
-          Light mode
+          {copy.nav.lightMode}
         </>
       ) : (
         <>
           <Moon className="h-3.5 w-3.5" />
-          Dark mode
+          {copy.nav.darkMode}
         </>
       )}
     </button>
