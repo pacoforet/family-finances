@@ -40,6 +40,7 @@ export function computeMonthSummary(
   budgetLines: BudgetLine[],
   allTransactions: Transaction[],
   categories: Category[],
+  householdSize = 1,
 ): MonthSummary {
   // Income categories are never counted as expenses
   const incomeCatIds = new Set(categories.filter(c => c.isIncome).map(c => c.id))
@@ -113,8 +114,8 @@ export function computeMonthSummary(
       pct:      round1(totalPct),
     },
     perPerson: {
-      budgeted: round2(totalBudgeted / 2),
-      actual:   round2(totalActual / 2),
+      budgeted: round2(totalBudgeted / Math.max(householdSize, 1)),
+      actual:   round2(totalActual / Math.max(householdSize, 1)),
     },
   }
 }

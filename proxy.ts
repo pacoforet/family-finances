@@ -40,7 +40,7 @@ export async function proxy(request: NextRequest) {
   // Public routes
   if (pathname === '/login' || pathname === '/api/health') {
     if (pathname === '/login' && user) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+      return NextResponse.redirect(new URL('/', request.url))
     }
     return response
   }

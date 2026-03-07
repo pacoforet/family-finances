@@ -1,5 +1,19 @@
 import { pgTable, text, real, integer, boolean } from 'drizzle-orm/pg-core'
 
+// ─── App Settings ───────────────────────────────────────────────────────────
+export const appSettings = pgTable('app_settings', {
+  id:              text('id').primaryKey(),
+  appName:         text('app_name').notNull(),
+  householdName:   text('household_name').notNull(),
+  defaultCurrency: text('default_currency').notNull().default('USD'),
+  locale:          text('locale').notNull().default('en-US'),
+  timezone:        text('timezone').notNull().default('UTC'),
+  householdSize:   integer('household_size').notNull().default(1),
+  setupCompleted:  boolean('setup_completed').notNull().default(false),
+  createdAt:       text('created_at').notNull(),
+  updatedAt:       text('updated_at').notNull(),
+})
+
 // ─── Categories ─────────────────────────────────────────────────────────────
 export const categories = pgTable('categories', {
   id:        text('id').primaryKey(),
@@ -78,8 +92,10 @@ export type BudgetLine   = typeof budgetLines.$inferSelect
 export type MappingRule  = typeof mappingRules.$inferSelect
 export type ImportBatch  = typeof importBatches.$inferSelect
 export type Transaction  = typeof transactions.$inferSelect
+export type AppSettings  = typeof appSettings.$inferSelect
 
 export type NewCategory    = typeof categories.$inferInsert
 export type NewBudgetLine  = typeof budgetLines.$inferInsert
 export type NewMappingRule = typeof mappingRules.$inferInsert
 export type NewTransaction = typeof transactions.$inferInsert
+export type NewAppSettings = typeof appSettings.$inferInsert

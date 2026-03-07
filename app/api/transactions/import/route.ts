@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
   const file = formData.get('file') as File | null
 
   if (!file) {
-    return NextResponse.json({ error: 'No se recibió ningún archivo' }, { status: 400 })
+    return NextResponse.json({ error: 'No file was uploaded.' }, { status: 400 })
   }
 
   const csvText = await file.text()
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
 
     if (existingHashes.has(hash)) {
       dupes++
-      skipped.push({ row: row as unknown as Record<string, string>, reason: 'Duplicado' })
+      skipped.push({ row: row as unknown as Record<string, string>, reason: 'Duplicate row' })
       continue
     }
 

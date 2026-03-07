@@ -83,7 +83,7 @@ export default function CategoriasPage() {
     const data = await res.json()
     setSavingCat(false)
     if (!res.ok) {
-      setCatError(data.error ?? 'Error al crear la categoría')
+      setCatError(data.error ?? 'Unable to create the category.')
       return
     }
     setCategories(prev => [...prev, data.category])
@@ -212,8 +212,8 @@ export default function CategoriasPage() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Categorías y reglas</h1>
-        <p className="text-muted-foreground text-sm">Gestiona cómo se asignan automáticamente las categorías</p>
+        <h1 className="text-2xl font-semibold">Categories and rules</h1>
+        <p className="text-muted-foreground text-sm">Manage manual categories and auto-categorization rules.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -221,7 +221,7 @@ export default function CategoriasPage() {
         <Card className="lg:col-span-1">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center justify-between">
-              Categorías
+              Categories
               <Button
                 variant="ghost"
                 size="sm"
@@ -270,10 +270,10 @@ export default function CategoriasPage() {
                 )}
                 <div className="flex gap-1.5">
                   <Button size="sm" className="h-7 text-xs" onClick={addCategory} disabled={savingCat || !newCatName.trim()}>
-                    {savingCat ? 'Guardando...' : 'Crear'}
+                    {savingCat ? 'Saving...' : 'Create'}
                   </Button>
                   <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setShowAddCat(false); setCatError(null) }}>
-                    Cancelar
+                    Cancel
                   </Button>
                 </div>
               </div>
@@ -316,7 +316,7 @@ export default function CategoriasPage() {
                       }`}
                     >
                       <TrendingUp className="h-3 w-3" />
-                      {editCatIsIncome ? 'Ingreso' : 'Gasto'}
+                      {editCatIsIncome ? 'Income' : 'Expense'}
                     </button>
                     <div className="flex gap-1">
                       <Button
@@ -353,7 +353,7 @@ export default function CategoriasPage() {
                             ? 'bg-white/20 text-white'
                             : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400'
                         }`}>
-                          Ingreso
+                          Income
                         </span>
                       )}
                     </button>
@@ -364,26 +364,24 @@ export default function CategoriasPage() {
                       <button
                         onClick={e => { e.stopPropagation(); toggleIsIncome(cat) }}
                         className={`p-1 rounded hover:bg-black/10 ${cat.isIncome ? 'text-emerald-500' : ''}`}
-                        title={cat.isIncome ? 'Marcar como gasto' : 'Marcar como ingreso'}
+                        title={cat.isIncome ? 'Mark as expense' : 'Mark as income'}
                       >
                         <TrendingUp className="h-3 w-3" />
                       </button>
                       <button
                         onClick={e => { e.stopPropagation(); startEditCat(cat) }}
                         className="p-1 rounded hover:bg-black/10"
-                        title="Editar"
+                        title="Edit"
                       >
                         <Pencil className="h-3 w-3" />
                       </button>
-                      {cat.name !== 'Sin categoría' && (
-                        <button
-                          onClick={e => { e.stopPropagation(); deleteCategory(cat) }}
-                          className="p-1 rounded hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900"
-                          title="Eliminar"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      )}
+                      <button
+                        onClick={e => { e.stopPropagation(); deleteCategory(cat) }}
+                        className="p-1 rounded hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
                     </div>
                   </div>
                 )}
@@ -403,13 +401,13 @@ export default function CategoriasPage() {
                       className="w-3 h-3 rounded-full"
                       style={{ backgroundColor: selectedCategory.color }}
                     />
-                    Reglas para {selectedCategory.name}
+                    Rules for {selectedCategory.name}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {rules.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-4 text-center">
-                      No hay reglas. Añade una para categorizar automáticamente.
+                      No rules yet. Add one to categorize future transactions automatically.
                     </p>
                   ) : (
                     <div className="space-y-2">
@@ -460,7 +458,7 @@ export default function CategoriasPage() {
               {/* Add rule form */}
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base">Añadir regla</CardTitle>
+                  <CardTitle className="text-base">Add rule</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="grid grid-cols-3 gap-3">
@@ -498,9 +496,9 @@ export default function CategoriasPage() {
                       />
                     </div>
                     <div className="space-y-1.5 col-span-2">
-                      <Label>Notas (opcional)</Label>
+                      <Label>Notes (optional)</Label>
                       <Input
-                        placeholder="Descripción de la regla..."
+                        placeholder="Optional description..."
                         value={newNotes}
                         onChange={e => setNewNotes(e.target.value)}
                       />
@@ -508,7 +506,7 @@ export default function CategoriasPage() {
                   </div>
                   <Button onClick={addRule} disabled={saving || !newMatchValue.trim()} size="sm">
                     <Plus className="h-4 w-4 mr-1.5" />
-                    {saving ? 'Guardando...' : 'Añadir regla'}
+                    {saving ? 'Saving...' : 'Add rule'}
                   </Button>
                 </CardContent>
               </Card>

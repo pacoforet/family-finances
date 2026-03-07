@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { formatCurrency, formatMonthYear } from '@/lib/format'
 import type { Category } from '@/db/schema'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useAppSettings } from '@/components/providers/AppSettingsProvider'
 
 interface BudgetLineRow {
   id: string
@@ -18,12 +19,8 @@ interface BudgetLineRow {
   notes: string | null
 }
 
-const MONTH_NAMES = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-]
-
 export default function PresupuestoPage() {
+  const settings = useAppSettings()
   const now = new Date()
   const [year, setYear]     = useState(now.getFullYear())
   const [month, setMonth]   = useState(now.getMonth() + 1)
@@ -41,7 +38,7 @@ export default function PresupuestoPage() {
       const d = new Date(start.getFullYear(), start.getMonth() + i, 1)
       const y = d.getFullYear()
       const m = d.getMonth() + 1
-      targets.push({ year: y, month: m, label: `${MONTH_NAMES[m - 1]} ${y}` })
+      targets.push({ year: y, month: m, label: formatMonthYear(y, m) })
     }
     return targets
   }, [year, month])
@@ -103,7 +100,7 @@ export default function PresupuestoPage() {
   const handleSave = async () => {
     setSaving(true)
     const linesPayload = categories
-      .filter(c => c.name !== 'Sin categoría' && !c.isIncome)
+      .filter(c => !c.isIncome)
       .map(c => ({ categoryId: c.id, amount: parseFloat(edits[c.id] ?? '0') || 0 }))
     await fetch('/api/budget', {
       method: 'POST',
@@ -127,14 +124,14 @@ export default function PresupuestoPage() {
         l => l.year === prevYearVal && l.month === prevMonthVal
       )
       if (prevLines.length === 0) {
-        alert(`No hay presupuesto guardado en ${prevMonthVal}/${prevYearVal}`)
+        alert(`No saved budget found for ${prevMonthVal}/${prevYearVal}.`)
       } else {
         const next = { ...edits }
         for (const l of prevLines) next[l.categoryId] = String(l.amount)
         setEdits(next)
       }
     } catch {
-      alert('No se pudo copiar el mes anterior')
+      alert('Unable to copy the previous month.')
     } finally {
       setCloning(false)
     }
@@ -145,7 +142,7 @@ export default function PresupuestoPage() {
     setApplyResult(null)
     setApplyProgress(0)
     const linesPayload = categories
-      .filter(c => c.name !== 'Sin categoría' && !c.isIncome)
+      .filter(c => !c.isIncome)
       .map(c => ({ categoryId: c.id, amount: parseFloat(edits[c.id] ?? '0') || 0 }))
     if (linesPayload.length === 0) { setApplying(false); return }
     const targets = applyTargets.filter(t => selectedTargets.has(`${t.year}-${t.month}`))
@@ -178,7 +175,7 @@ export default function PresupuestoPage() {
     )
   }
 
-  const expenseCats = categories.filter(c => c.name !== 'Sin categoría' && !c.isIncome)
+  const expenseCats = categories.filter(c => !c.isIncome)
   const totalBudget = expenseCats.reduce((sum, c) => sum + (parseFloat(edits[c.id] ?? '0') || 0), 0)
   const sortedExpenseCats = [...expenseCats].sort(
     (a, b) => (parseFloat(edits[b.id] ?? '0') || 0) - (parseFloat(edits[a.id] ?? '0') || 0)
@@ -189,8 +186,8 @@ export default function PresupuestoPage() {
 
       {/* ── Header ───────────────────────────────────────────────── */}
       <div>
-        <h1 className="text-2xl font-semibold">Presupuesto mensual</h1>
-        <p className="text-sm text-muted-foreground">Configura cuánto planéais gastar en cada categoría</p>
+        <h1 className="text-2xl font-semibold">Monthly budget</h1>
+        <p className="text-sm text-muted-foreground">Plan how much you expect to spend in each category.</p>
       </div>
 
       {/* ── Month navigator + actions ────────────────────────────── */}
@@ -206,7 +203,7 @@ export default function PresupuestoPage() {
         </Button>
         <Button variant="outline" size="sm" onClick={handleClone} disabled={cloning} className="ml-1">
           <Copy className="h-4 w-4 mr-1.5" />
-          {cloning ? 'Copiando...' : 'Copiar mes anterior'}
+          {cloning ? 'Copying...' : 'Copy previous month'}
         </Button>
         <Button
           variant="outline"
@@ -214,7 +211,7 @@ export default function PresupuestoPage() {
           onClick={() => { setShowApplyDialog(true); setApplyResult(null) }}
         >
           <CalendarRange className="h-4 w-4 mr-1.5" />
-          Aplicar a varios meses
+          Apply to multiple months
         </Button>
       </div>
 
@@ -224,14 +221,14 @@ export default function PresupuestoPage() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm flex items-center justify-between">
               <span>
-                Copiar presupuesto de{' '}
+                Copy the budget from{' '}
                 <span className="font-semibold capitalize">{formatMonthYear(year, month)}</span> a:
               </span>
               <button
                 onClick={toggleAll}
                 className="text-xs font-normal text-muted-foreground hover:text-foreground transition-colors"
               >
-                {selectedTargets.size === applyTargets.length ? 'Desmarcar todo' : 'Marcar todo'}
+                {selectedTargets.size === applyTargets.length ? 'Clear all' : 'Select all'}
               </button>
             </CardTitle>
           </CardHeader>
@@ -267,7 +264,7 @@ export default function PresupuestoPage() {
 
             {applyResult && (
               <div className="px-3 py-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-sm text-emerald-700 dark:text-emerald-400">
-                ✓ Presupuesto aplicado a {applyResult.done} {applyResult.done === 1 ? 'mes' : 'meses'}
+                ✓ Budget applied to {applyResult.done} {applyResult.done === 1 ? 'month' : 'months'}
               </div>
             )}
 
@@ -278,12 +275,12 @@ export default function PresupuestoPage() {
                 size="sm"
               >
                 {applying
-                  ? `Aplicando ${applyProgress}/${selectedTargets.size}…`
-                  : `Aplicar a ${selectedTargets.size} ${selectedTargets.size === 1 ? 'mes' : 'meses'}`
+                  ? `Applying ${applyProgress}/${selectedTargets.size}...`
+                  : `Apply to ${selectedTargets.size} ${selectedTargets.size === 1 ? 'month' : 'months'}`
                 }
               </Button>
               <Button variant="ghost" size="sm" onClick={() => { setShowApplyDialog(false); setApplyResult(null) }}>
-                Cerrar
+                Close
               </Button>
             </div>
           </CardContent>
@@ -293,7 +290,7 @@ export default function PresupuestoPage() {
       {/* ── Budget lines ─────────────────────────────────────────── */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Partidas presupuestarias</CardTitle>
+          <CardTitle className="text-base">Budget categories</CardTitle>
         </CardHeader>
         <CardContent className="px-0 pb-0">
           {loading ? (
@@ -354,7 +351,7 @@ export default function PresupuestoPage() {
                       onChange={e => setEdits(prev => ({ ...prev, [cat.id]: e.target.value }))}
                       className="w-28 text-right font-mono h-8 text-sm"
                     />
-                    <span className="text-muted-foreground text-sm w-3">€</span>
+                    <span className="text-muted-foreground text-sm w-3">{settings.defaultCurrency}</span>
                   </div>
                 </div>
               )
@@ -363,12 +360,12 @@ export default function PresupuestoPage() {
             {/* Total footer */}
             <div className="px-6 py-4 border-t bg-muted/20 rounded-b-xl">
               <div className="flex items-center justify-between font-semibold">
-                <span>Total mensual</span>
+                <span>Monthly total</span>
                 <span className="font-mono text-lg">{formatCurrency(totalBudget)}</span>
               </div>
               <div className="flex items-center justify-between text-sm text-muted-foreground mt-0.5">
-                <span>Por persona</span>
-                <span className="font-mono">{formatCurrency(totalBudget / 2)}</span>
+                <span>Per person</span>
+                <span className="font-mono">{formatCurrency(totalBudget / Math.max(settings.householdSize, 1))}</span>
               </div>
             </div>
           </>
@@ -383,8 +380,8 @@ export default function PresupuestoPage() {
         className={`transition-all ${saved ? 'bg-emerald-600 hover:bg-emerald-600' : ''}`}
       >
         {saved
-          ? <><Check className="h-4 w-4 mr-1.5" />¡Guardado!</>
-          : <><Save className="h-4 w-4 mr-1.5" />{saving ? 'Guardando...' : 'Guardar presupuesto'}</>
+          ? <><Check className="h-4 w-4 mr-1.5" />Saved</>
+          : <><Save className="h-4 w-4 mr-1.5" />{saving ? 'Saving...' : 'Save budget'}</>
         }
       </Button>
     </div>

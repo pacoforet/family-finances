@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { formatCurrency, formatDate } from '@/lib/format'
+import { formatCurrency, formatDate, formatMonthYear, monthName } from '@/lib/format'
 import { Ban, Tag, CalendarClock, CheckCircle2, Calendar } from 'lucide-react'
 import type { Category } from '@/db/schema'
 
@@ -22,11 +22,6 @@ interface TxWithCategory {
   budgetDate: string | null
   state: string | null
 }
-
-const MONTH_NAMES = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-]
 
 function parseBudgetDate(bd: string | null): { year: number; month: number } | null {
   if (!bd) return null
@@ -102,7 +97,7 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
 
       if (!res.ok) {
         const d = await res.json()
-        setError(d.error ?? 'Error al guardar')
+        setError(d.error ?? 'Unable to save transaction.')
         return
       }
 
@@ -157,14 +152,14 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
     }
   }
 
-  const visibleCategories = categories.filter(c => c.name !== 'Sin categoría')
+  const visibleCategories = categories
 
   return (
     <Sheet open onOpenChange={open => { if (!open) onClose() }}>
       <SheetContent className="p-0 gap-0 flex flex-col sm:max-w-sm overflow-hidden">
 
         {/* Accessible title for screen readers */}
-        <SheetTitle className="sr-only">Editar transacción</SheetTitle>
+        <SheetTitle className="sr-only">Edit transaction</SheetTitle>
 
         {/* ─── HEADER ───────────────────────────────────────── */}
         <div
@@ -178,7 +173,7 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
           <div className="absolute -bottom-10 -right-2 w-24 h-24 rounded-full bg-white/5" />
 
           <p className="text-white/60 text-[10px] font-semibold uppercase tracking-widest mb-1.5">
-            {isExpense ? 'Gasto' : 'Ingreso'}
+            {isExpense ? 'Expense' : 'Income'}
           </p>
           <p className="text-white text-4xl font-bold font-mono tracking-tight leading-none mb-4">
             {formatCurrency(tx.importe)}
@@ -199,7 +194,7 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
                 <div className="flex items-center gap-2.5">
                   <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
                   <p className="text-xs text-green-800 dark:text-green-300 font-medium">
-                    Memorizado: &quot;{tx.descripcion}&quot; → {categories.find(c => c.id === categoryId)?.name}
+                    Saved rule: &quot;{tx.descripcion}&quot; → {categories.find(c => c.id === categoryId)?.name}
                   </p>
                 </div>
               )}
@@ -207,7 +202,7 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
                 <div className="flex items-center gap-2.5">
                   <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
                   <p className="text-xs text-green-800 dark:text-green-300 font-medium">
-                    También se categorizaron {autoCatCount} transacción{autoCatCount !== 1 ? 'es' : ''} más con la misma descripción
+                    Also updated {autoCatCount} more transaction{autoCatCount !== 1 ? 's' : ''} with the same description.
                   </p>
                 </div>
               )}
@@ -218,11 +213,11 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
           <div className="space-y-2.5">
             <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
               <Tag className="h-3 w-3" />
-              Categoría
+              Category
             </div>
             <div className="grid grid-cols-2 gap-1.5">
 
-              {/* "Sin categoría" pill */}
+              {/* "No category" pill */}
               <button
                 onClick={() => setCategoryId('none')}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-left transition-all duration-150 ${
@@ -232,7 +227,7 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
                 }`}
               >
                 <span className="w-2 h-2 rounded-full bg-gray-400 shrink-0" />
-                <span className="text-xs font-medium truncate text-muted-foreground">Sin categoría</span>
+                <span className="text-xs font-medium truncate text-muted-foreground">No category</span>
               </button>
 
               {visibleCategories.map(cat => {
@@ -267,12 +262,12 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
           {/* NOTES */}
           <div className="space-y-2">
             <label className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Notas
+              Notes
             </label>
             <Textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
-              placeholder="Añade un comentario..."
+              placeholder="Add a note..."
               rows={2}
               className="resize-none text-sm"
             />
@@ -292,10 +287,10 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
               <CalendarClock className={`h-4 w-4 mt-0.5 shrink-0 transition-colors ${splitAnnual ? 'text-blue-600' : 'text-muted-foreground'}`} />
               <div className="min-w-0">
                 <p className={`text-sm font-medium leading-tight ${splitAnnual ? 'text-blue-800 dark:text-blue-300' : ''}`}>
-                  Prorratear anualmente{splitAnnual && <span className="ml-1.5 text-xs font-normal opacity-70">(÷12 = {formatCurrency(Math.abs(tx.importe) / 12)}/mes)</span>}
+                  Spread across 12 months{splitAnnual && <span className="ml-1.5 text-xs font-normal opacity-70">(÷12 = {formatCurrency(Math.abs(tx.importe) / 12)}/month)</span>}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
-                  Gasto anual contabilizado mes a mes
+                  Treat this as an annual expense in the monthly budget
                 </p>
               </div>
             </div>
@@ -328,12 +323,12 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
                 <Calendar className={`h-4 w-4 mt-0.5 shrink-0 transition-colors ${budgetDateActive ? 'text-violet-600' : 'text-muted-foreground'}`} />
                 <div className="min-w-0">
                   <p className={`text-sm font-medium leading-tight ${budgetDateActive ? 'text-violet-800 dark:text-violet-300' : ''}`}>
-                    Imputar a otro mes
+                    Assign to another month
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
                     {budgetDateActive
-                      ? `Contabilizado en ${MONTH_NAMES[budgetMonth - 1]} ${budgetYear}`
-                      : 'Mes de presupuesto automático'}
+                      ? `Tracked in ${formatMonthYear(budgetYear, budgetMonth)}`
+                      : 'Use the transaction month automatically'}
                   </p>
                 </div>
               </div>
@@ -352,8 +347,8 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
                   onChange={e => setBudgetMonth(parseInt(e.target.value))}
                   className="flex-1 text-sm rounded-md border border-violet-200 dark:border-violet-700 px-2 py-1.5 bg-background text-violet-800 dark:text-violet-300 focus:outline-none"
                 >
-                  {MONTH_NAMES.map((name, i) => (
-                    <option key={i} value={i + 1}>{name}</option>
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <option key={i} value={i + 1}>{monthName(i + 1)}</option>
                   ))}
                 </select>
                 <input
@@ -382,10 +377,10 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
               <Ban className={`h-4 w-4 mt-0.5 shrink-0 transition-colors ${exclude ? 'text-amber-600' : 'text-muted-foreground'}`} />
               <div className="min-w-0">
                 <p className={`text-sm font-medium leading-tight ${exclude ? 'text-amber-800 dark:text-amber-300' : ''}`}>
-                  Excluir del presupuesto
+                  Exclude from budget
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5 leading-snug">
-                  Gastos excepcionales que no cuentan
+                  Ignore exceptional one-off spending in the budget totals
                 </p>
               </div>
             </div>
@@ -418,10 +413,10 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
               disabled={saving || autoCatCount !== null}
               className="flex-1 h-10"
             >
-              {saving ? 'Guardando…' : 'Guardar cambios'}
+              {saving ? 'Saving...' : 'Save changes'}
             </Button>
             <Button variant="outline" onClick={onClose} className="h-10 px-4">
-              Cancelar
+              Cancel
             </Button>
           </div>
 
@@ -430,12 +425,12 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
               onClick={() => setShowDeleteConfirm(true)}
               className="w-full text-center text-xs text-muted-foreground/70 hover:text-red-500 transition-colors py-1"
             >
-              Eliminar transacción
+              Delete transaction
             </button>
           ) : (
             <div className="rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/40 dark:border-red-800 px-3 py-3 space-y-2">
               <p className="text-xs text-red-700 dark:text-red-400 font-medium text-center">
-                ¿Seguro que quieres eliminarla?
+                Delete this transaction?
               </p>
               <div className="flex gap-2">
                 <Button
@@ -445,7 +440,7 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
                   disabled={deleting}
                   className="flex-1 h-8 text-xs"
                 >
-                  {deleting ? 'Eliminando…' : 'Sí, eliminar'}
+                  {deleting ? 'Deleting...' : 'Yes, delete'}
                 </Button>
                 <Button
                   variant="outline"
@@ -453,7 +448,7 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
                   onClick={() => setShowDeleteConfirm(false)}
                   className="flex-1 h-8 text-xs"
                 >
-                  Cancelar
+                  Cancel
                 </Button>
               </div>
             </div>

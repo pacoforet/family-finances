@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Budget Starter
 
-## Getting Started
+Self-hostable household budget app built with Next.js, Drizzle, PostgreSQL, and Supabase Auth.
 
-First, run the development server:
+This repository is designed for one household per deployment. A fresh clone signs in, completes `/setup`, and chooses either a blank workspace or a generic starter template.
+
+## Stack
+
+- Next.js 16
+- React 19
+- Drizzle ORM
+- PostgreSQL
+- Supabase Auth
+- Tailwind CSS 4
+
+## What ships out of the box
+
+- Email/password auth through Supabase
+- First-run setup wizard for app name, household name, locale, currency, timezone, and household size
+- Monthly budget planning
+- Transaction import from Revolut CSV files
+- Category rules for auto-categorization
+- Reports and dashboard views
+
+## Quick start
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Copy environment variables:
+
+```bash
+cp .env.example .env.local
+```
+
+3. Create a Supabase project and fill in:
+
+- `DATABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+4. Run migrations and seed:
+
+```bash
+npm run db:migrate
+npm run db:seed
+```
+
+5. Create your first user in Supabase Auth.
+
+Use the Supabase dashboard or your preferred admin flow to create an email/password user before first login.
+
+6. Start the app:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+7. Sign in at [http://localhost:3000/login](http://localhost:3000/login), then complete `/setup`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deployment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Vercel + Supabase
 
-## Learn More
+1. Create a Supabase project.
+2. Import this repo into Vercel.
+3. Add the three environment variables from `.env.example`.
+4. Run the SQL migrations against your database.
+5. Create the initial user in Supabase Auth.
+6. Open the deployment URL, sign in, and complete setup.
 
-To learn more about Next.js, take a look at the following resources:
+## Environment variables
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Variable | Required | Description |
+| --- | --- | --- |
+| `DATABASE_URL` | Yes | PostgreSQL connection string used by Drizzle and the API routes |
+| `NEXT_PUBLIC_SUPABASE_URL` | Yes | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase anonymous key for browser auth |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Setup behavior
 
-## Deploy on Vercel
+- `db:seed` is intentionally minimal.
+- Household-specific categories, budgets, and starter rules are created during `/setup`.
+- The starter template is optional. Choose `Start blank` if you want to configure everything yourself.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Notes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- This starter currently assumes Revolut CSV imports. Other bank importers can be added as additional parsers.
+- One deployment maps to one household database. Multi-household SaaS behavior is intentionally out of scope.

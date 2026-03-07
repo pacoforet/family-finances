@@ -10,6 +10,7 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer,
 } from 'recharts'
 import type { MonthSummary } from '@/lib/budget-calculator'
+import { useAppSettings } from '@/components/providers/AppSettingsProvider'
 
 // ─── Custom tooltip for donut chart ─────────────────────────────────────────
 function PieTooltip({ active, payload, total }: { active?: boolean; payload?: { name: string; value: number; payload: { color: string } }[]; total: number }) {
@@ -50,6 +51,7 @@ function BarTooltip({ active, payload, label }: { active?: boolean; payload?: { 
 }
 
 export default function InformesPage() {
+  const settings = useAppSettings()
   const now = new Date()
   const [year, setYear]   = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth() + 1)
@@ -111,7 +113,7 @@ export default function InformesPage() {
   const yearMonthsWithData = yearData.filter(d => d.total > 0)
   const yearTotal   = yearData.reduce((s, d) => s + d.total, 0)
   const yearAvg     = yearMonthsWithData.length > 0 ? yearTotal / yearMonthsWithData.length : 0
-  const yearPerson  = yearTotal / 2
+  const yearPerson  = yearTotal / Math.max(settings.householdSize, 1)
 
   return (
     <div className="p-6 space-y-6 w-full">
@@ -119,8 +121,8 @@ export default function InformesPage() {
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Informes</h1>
-          <p className="text-muted-foreground text-sm">Análisis de tus gastos</p>
+          <h1 className="text-2xl font-semibold">Reports</h1>
+          <p className="text-muted-foreground text-sm">View monthly and yearly spending trends.</p>
         </div>
 
         {/* Segmented control */}
@@ -135,7 +137,7 @@ export default function InformesPage() {
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              {v === 'mensual' ? 'Mensual' : 'Anual'}
+              {v === 'mensual' ? 'Monthly' : 'Yearly'}
             </button>
           ))}
         </div>
@@ -168,7 +170,7 @@ export default function InformesPage() {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
           <div className="w-6 h-6 border-2 border-current border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm">Cargando...</span>
+          <span className="text-sm">Loading...</span>
         </div>
 
       ) : view === 'mensual' ? (
@@ -177,7 +179,7 @@ export default function InformesPage() {
           {(!summary || summary.lines.length === 0) ? (
             <Card>
               <CardContent className="text-center py-12 text-muted-foreground">
-                No hay datos para este mes
+                No data is available for this month yet.
               </CardContent>
             </Card>
           ) : (
@@ -189,9 +191,9 @@ export default function InformesPage() {
                   <CardContent className="pt-5 pb-4">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">Gastado</p>
+                        <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">Spent</p>
                         <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{formatCurrency(summary.totals.actual)}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{summary.totals.pct}% del presupuesto</p>
+                        <p className="text-xs text-muted-foreground mt-1">{summary.totals.pct}% of budget</p>
                       </div>
                       <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
                         <Wallet className="h-4 w-4 text-gray-500" />
@@ -204,9 +206,9 @@ export default function InformesPage() {
                   <CardContent className="pt-5 pb-4">
                     <div className="flex items-start justify-between">
                       <div>
-                        <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">Presupuesto</p>
+                        <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">Budget</p>
                         <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{formatCurrency(summary.totals.budgeted)}</p>
-                        <p className="text-xs text-muted-foreground mt-1">Total planificado</p>
+                        <p className="text-xs text-muted-foreground mt-1">Planned total</p>
                       </div>
                       <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950">
                         <TrendingUp className="h-4 w-4 text-blue-500" />

@@ -24,12 +24,12 @@ export async function POST(request: NextRequest) {
   const { categoryId, matchType, matchValue, priority, notes } = body
 
   if (!categoryId || !matchType || !matchValue) {
-    return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 })
+    return NextResponse.json({ error: 'Category, match type, and match value are required.' }, { status: 400 })
   }
 
   const validMatchTypes = ['contains', 'exact', 'starts_with', 'regex']
   if (!validMatchTypes.includes(matchType)) {
-    return NextResponse.json({ error: 'Tipo de regla inválido' }, { status: 400 })
+    return NextResponse.json({ error: 'Invalid rule match type.' }, { status: 400 })
   }
 
   const now = new Date().toISOString()

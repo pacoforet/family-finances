@@ -9,7 +9,7 @@ export async function GET(
 ) {
   const { id } = await params
   const rows = await db.select().from(transactions).where(eq(transactions.id, id))
-  if (!rows.length) return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
+  if (!rows.length) return NextResponse.json({ error: 'Transaction not found.' }, { status: 404 })
   return NextResponse.json({ transaction: rows[0] })
 }
 
@@ -41,7 +41,7 @@ export async function PATCH(
 
   const existing = await db.select({ id: transactions.id }).from(transactions).where(eq(transactions.id, id))
   if (!existing.length) {
-    return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
+    return NextResponse.json({ error: 'Transaction not found.' }, { status: 404 })
   }
 
   await db.update(transactions).set(updates).where(eq(transactions.id, id))
@@ -57,7 +57,7 @@ export async function DELETE(
   const { id } = await params
   const existing = await db.select({ id: transactions.id }).from(transactions).where(eq(transactions.id, id))
   if (!existing.length) {
-    return NextResponse.json({ error: 'No encontrado' }, { status: 404 })
+    return NextResponse.json({ error: 'Transaction not found.' }, { status: 404 })
   }
   await db.delete(transactions).where(eq(transactions.id, id))
   return NextResponse.json({ success: true })

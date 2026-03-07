@@ -6,7 +6,7 @@ import { Sidebar } from './Sidebar'
 export function ConditionalSidebar() {
   const pathname = usePathname()
 
-  if (pathname === '/login') {
+  if (pathname === '/login' || pathname === '/setup') {
     return null
   }
 

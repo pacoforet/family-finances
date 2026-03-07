@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (!year || !month || !Array.isArray(lines)) {
-    return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 })
+    return NextResponse.json({ error: 'Invalid budget payload.' }, { status: 400 })
   }
 
   await db.transaction(async (tx) => {

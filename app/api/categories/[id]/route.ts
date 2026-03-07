@@ -17,13 +17,13 @@ export async function PATCH(
   }
 
   if (!Object.keys(updates).length) {
-    return NextResponse.json({ error: 'No hay campos a actualizar' }, { status: 400 })
+    return NextResponse.json({ error: 'No updatable fields were provided.' }, { status: 400 })
   }
 
   await db.update(categories).set(updates).where(eq(categories.id, id))
   const updated = await db.select().from(categories).where(eq(categories.id, id))
 
-  if (!updated.length) return NextResponse.json({ error: 'No encontrada' }, { status: 404 })
+  if (!updated.length) return NextResponse.json({ error: 'Category not found.' }, { status: 404 })
   return NextResponse.json({ category: updated[0] })
 }
 
@@ -34,7 +34,7 @@ export async function DELETE(
   const { id } = await params
   const existing = await db.select({ id: categories.id }).from(categories).where(eq(categories.id, id))
   if (!existing.length) {
-    return NextResponse.json({ error: 'No encontrada' }, { status: 404 })
+    return NextResponse.json({ error: 'Category not found.' }, { status: 404 })
   }
 
   await db.transaction(async (tx) => {

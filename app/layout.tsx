@@ -2,28 +2,41 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { ConditionalSidebar } from '@/components/layout/ConditionalSidebar'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { AppSettingsProvider } from '@/components/providers/AppSettingsProvider'
+import { SetupGate } from '@/components/layout/SetupGate'
+import { getPublicAppSettings } from '@/lib/app-settings'
 
-export const metadata: Metadata = {
-  title: 'Finanzas Familiares',
-  description: 'Control de gastos y presupuesto familiar',
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getPublicAppSettings()
+
+  return {
+    title: settings.appName,
+    description: `${settings.householdName} budget workspace`,
+  }
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const settings = await getPublicAppSettings()
+
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang={settings.locale} suppressHydrationWarning>
       <body className="font-sans bg-background text-foreground antialiased">
-        <TooltipProvider>
-          <div className="flex min-h-screen">
-            <ConditionalSidebar />
-            <main className="flex-1 overflow-auto">
-              {children}
-            </main>
-          </div>
-        </TooltipProvider>
+        <AppSettingsProvider settings={settings}>
+          <TooltipProvider>
+            <SetupGate>
+              <div className="flex min-h-screen">
+                <ConditionalSidebar />
+                <main className="flex-1 overflow-auto">
+                  {children}
+                </main>
+              </div>
+            </SetupGate>
+          </TooltipProvider>
+        </AppSettingsProvider>
       </body>
     </html>
   )

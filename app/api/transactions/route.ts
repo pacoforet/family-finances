@@ -3,6 +3,7 @@ import { db } from '@/db'
 import { transactions, categories } from '@/db/schema'
 import { eq, desc, and, like, isNull, sql } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
+import { getPublicAppSettings } from '@/lib/app-settings'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
@@ -76,11 +77,12 @@ export async function POST(request: NextRequest) {
   const { descripcion, importe, fechaInicio, categoryId, notes } = body
 
   if (!descripcion || importe == null || !fechaInicio) {
-    return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 })
+    return NextResponse.json({ error: 'Description, amount, and date are required.' }, { status: 400 })
   }
 
   const now = new Date().toISOString()
   const id = uuidv4()
+  const settings = await getPublicAppSettings()
 
   const tx = await db.insert(transactions).values({
     id,
@@ -92,7 +94,7 @@ export async function POST(request: NextRequest) {
     notes:          notes ?? null,
     isManual:       true,
     state:          'COMPLETADO',
-    divisa:         'EUR',
+    divisa:         settings.defaultCurrency,
     comision:       0,
     excludeFromBudget: false,
     createdAt:      now,

@@ -6,20 +6,22 @@ import { LayoutDashboard, Upload, List, PiggyBank, Tag, BarChart3, LogOut } from
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { ThemeToggle } from './ThemeToggle'
+import { useAppSettings } from '@/components/providers/AppSettingsProvider'
 
 const NAV_ITEMS = [
-  { href: '/dashboard',     label: 'Panel',         icon: LayoutDashboard },
-  { href: '/transacciones', label: 'Transacciones', icon: List },
-  { href: '/presupuesto',   label: 'Presupuesto',   icon: PiggyBank },
-  { href: '/categorias',    label: 'Categorías',    icon: Tag },
-  { href: '/informes',      label: 'Informes',      icon: BarChart3 },
-  { href: '/importar',      label: 'Importar',      icon: Upload },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/transacciones', label: 'Transactions', icon: List },
+  { href: '/presupuesto', label: 'Budget', icon: PiggyBank },
+  { href: '/categorias', label: 'Categories', icon: Tag },
+  { href: '/informes', label: 'Reports', icon: BarChart3 },
+  { href: '/importar', label: 'Import', icon: Upload },
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
+  const settings = useAppSettings()
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -34,11 +36,13 @@ export function Sidebar() {
       <Link href="/dashboard" className="px-4 py-5 border-b bg-gradient-to-br from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 transition-colors">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-white/10 ring-1 ring-white/20 flex items-center justify-center shrink-0">
-            <span className="text-[11px] font-bold text-white tracking-tight leading-none">P&amp;S</span>
+            <span className="text-[11px] font-bold text-white tracking-tight leading-none">
+              {settings.appName.slice(0, 2).toUpperCase()}
+            </span>
           </div>
           <div className="min-w-0">
-            <p className="font-semibold text-sm text-white leading-tight">Finanzas</p>
-            <p className="text-[11px] text-white/45 mt-0.5">Paco &amp; Silvia</p>
+            <p className="font-semibold text-sm text-white leading-tight">{settings.appName}</p>
+            <p className="text-[11px] text-white/45 mt-0.5">{settings.householdName}</p>
           </div>
         </div>
       </Link>
@@ -83,7 +87,7 @@ export function Sidebar() {
           className="w-full mt-1 flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
         >
           <LogOut className="h-3.5 w-3.5" />
-          Cerrar sesión
+          Sign out
         </button>
       </div>
     </aside>

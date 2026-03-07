@@ -6,6 +6,7 @@ import { Lock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { createClient } from '@/lib/supabase/client'
+import { useAppSettings } from '@/components/providers/AppSettingsProvider'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -15,6 +16,7 @@ export default function LoginPage() {
 
   const router = useRouter()
   const supabase = createClient()
+  const settings = useAppSettings()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -28,12 +30,12 @@ export default function LoginPage() {
     })
 
     if (signInError) {
-      setError('Credenciales incorrectas')
+      setError('Incorrect email or password.')
       setLoading(false)
       return
     }
 
-    router.push('/dashboard')
+    router.push('/')
     router.refresh()
   }
 
@@ -47,9 +49,9 @@ export default function LoginPage() {
         </div>
 
         <div>
-          <h1 className="text-2xl font-semibold">Finanzas Familiares</h1>
+          <h1 className="text-2xl font-semibold">{settings.appName}</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Introduce tus credenciales para continuar
+            Sign in with your Supabase account to continue.
           </p>
         </div>
 
@@ -64,7 +66,7 @@ export default function LoginPage() {
 
           <Input
             type="password"
-            placeholder="Contraseña"
+            placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
@@ -72,7 +74,7 @@ export default function LoginPage() {
           {error && <p className="text-sm text-red-600">{error}</p>}
 
           <Button type="submit" className="w-full" disabled={!email || !password || loading}>
-            {loading ? 'Entrando...' : 'Entrar'}
+            {loading ? 'Signing in...' : 'Sign in'}
           </Button>
         </form>
       </div>

@@ -65,7 +65,7 @@ export default function ImportarPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        setError(data.error ?? 'Error al importar')
+        setError(data.error ?? 'Import failed.')
       } else {
         setResult(data)
         setFile(null)
@@ -88,9 +88,9 @@ export default function ImportarPage() {
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Importar extracto</h1>
+        <h1 className="text-2xl font-semibold">Import statement</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Sube el CSV de Revolut para importar tus transacciones del mes
+          Upload a Revolut CSV to import your latest transactions.
         </p>
       </div>
 
@@ -99,28 +99,28 @@ export default function ImportarPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5 text-green-500" />
-              Importación completada
+              Import completed
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-3 gap-4">
               <div className="text-center p-4 bg-green-50 dark:bg-green-950 rounded-lg">
                 <div className="text-2xl font-bold text-green-600">{result.imported}</div>
-                <div className="text-sm text-muted-foreground">Importadas</div>
+                <div className="text-sm text-muted-foreground">Imported</div>
               </div>
               <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-950 rounded-lg">
                 <div className="text-2xl font-bold text-yellow-600">{result.dupes}</div>
-                <div className="text-sm text-muted-foreground">Duplicadas</div>
+                <div className="text-sm text-muted-foreground">Duplicates</div>
               </div>
               <div className="text-center p-4 bg-red-50 dark:bg-red-950 rounded-lg">
                 <div className="text-2xl font-bold text-red-600">{result.errors}</div>
-                <div className="text-sm text-muted-foreground">Errores</div>
+                <div className="text-sm text-muted-foreground">Errors</div>
               </div>
             </div>
             <div className="flex gap-3">
-              <Button onClick={reset} variant="outline">Importar otro archivo</Button>
+              <Button onClick={reset} variant="outline">Import another file</Button>
               <Button asChild>
-                <a href="/transacciones">Ver transacciones</a>
+                <a href="/transacciones">View transactions</a>
               </Button>
             </div>
           </CardContent>
@@ -143,8 +143,8 @@ export default function ImportarPage() {
               onClick={() => document.getElementById('csv-input')?.click()}
             >
               <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
-              <p className="text-base font-medium">Arrastra el CSV de Revolut aquí</p>
-              <p className="text-sm text-muted-foreground mt-1">o haz clic para seleccionar</p>
+              <p className="text-base font-medium">Drop a Revolut CSV here</p>
+              <p className="text-sm text-muted-foreground mt-1">or click to browse</p>
               <input
                 id="csv-input"
                 type="file"
@@ -162,7 +162,7 @@ export default function ImportarPage() {
                     <div>
                       <CardTitle className="text-base">{file.name}</CardTitle>
                       <CardDescription>
-                        {preview.length} transacciones válidas · {previewSkipped} omitidas
+                        {preview.length} valid rows · {previewSkipped} skipped
                       </CardDescription>
                     </div>
                   </div>
@@ -177,10 +177,10 @@ export default function ImportarPage() {
                   <table className="w-full text-sm">
                     <thead className="bg-muted sticky top-0">
                       <tr>
-                        <th className="text-left px-3 py-2 font-medium">Fecha</th>
-                        <th className="text-left px-3 py-2 font-medium">Descripción</th>
+                        <th className="text-left px-3 py-2 font-medium">Date</th>
+                        <th className="text-left px-3 py-2 font-medium">Description</th>
                         <th className="text-left px-3 py-2 font-medium">Tipo</th>
-                        <th className="text-right px-3 py-2 font-medium">Importe</th>
+                        <th className="text-right px-3 py-2 font-medium">Amount</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -217,11 +217,11 @@ export default function ImportarPage() {
                     disabled={importing || preview.length === 0}
                   >
                     {importing
-                      ? 'Importando...'
-                      : `Importar ${preview.length} transacciones`
+                      ? 'Importing...'
+                      : `Import ${preview.length} transactions`
                     }
                   </Button>
-                  <Button variant="outline" onClick={reset}>Cancelar</Button>
+                  <Button variant="outline" onClick={reset}>Cancel</Button>
                 </div>
               </CardContent>
             </Card>
@@ -232,15 +232,15 @@ export default function ImportarPage() {
       {/* Instructions */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Cómo exportar desde Revolut</CardTitle>
+          <CardTitle className="text-base">How to export from Revolut</CardTitle>
         </CardHeader>
         <CardContent>
           <ol className="text-sm space-y-1.5 text-muted-foreground list-decimal list-inside">
-            <li>Abre Revolut y ve a la cuenta compartida</li>
-            <li>Toca el icono de descarga o ve a Declaraciones</li>
-            <li>Selecciona el período del mes (ej. 1 ene – 31 ene)</li>
-            <li>Elige formato CSV</li>
-            <li>Descarga y sube el archivo aquí</li>
+            <li>Open Revolut and go to the account you want to export.</li>
+            <li>Choose the statement or export option.</li>
+            <li>Select the date range you want to import.</li>
+            <li>Export the statement as CSV.</li>
+            <li>Upload that file here.</li>
           </ol>
         </CardContent>
       </Card>

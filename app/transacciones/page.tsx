@@ -30,7 +30,7 @@ interface TxWithCategory {
 
 export default function TransaccionesPage() {
   return (
-    <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Cargando...</div>}>
+    <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading...</div>}>
       <TransaccionesContent />
     </Suspense>
   )
@@ -115,14 +115,14 @@ function TransaccionesContent() {
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Transacciones</h1>
+          <h1 className="text-2xl font-semibold">Transactions</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {total} transacciones · {formatCurrency(totalExpenses)} en gastos
+            {total} transactions · {formatCurrency(totalExpenses)} in expenses
           </p>
         </div>
         <Button onClick={() => setShowAdd(true)} size="sm">
           <Plus className="h-4 w-4 mr-1.5" />
-          Añadir manual
+          Add manual
         </Button>
       </div>
 
@@ -153,10 +153,10 @@ function TransaccionesContent() {
           setCatFilter(value)
         }}>
           <SelectTrigger className="w-44">
-            <SelectValue placeholder="Todas las categorías" />
+            <SelectValue placeholder="All categories" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todas las categorías</SelectItem>
+            <SelectItem value="all">All categories</SelectItem>
             {categories.map(c => (
               <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
             ))}
@@ -166,7 +166,7 @@ function TransaccionesContent() {
         <div className="relative flex-1 min-w-48">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar comercio..."
+            placeholder="Search merchant..."
             value={search}
             onChange={e => {
               setLoading(true)
@@ -188,7 +188,7 @@ function TransaccionesContent() {
           className="gap-1.5"
         >
           <Filter className="h-4 w-4" />
-          Sin categoría
+          No category
         </Button>
       </div>
 
@@ -197,24 +197,24 @@ function TransaccionesContent() {
         <table className="w-full text-sm">
           <thead className="bg-muted">
             <tr>
-              <th className="text-left px-4 py-3 font-medium">Fecha</th>
-              <th className="text-left px-4 py-3 font-medium">Descripción</th>
-              <th className="text-left px-4 py-3 font-medium">Categoría</th>
-              <th className="text-right px-4 py-3 font-medium">Importe</th>
-              <th className="text-left px-4 py-3 font-medium">Notas</th>
+              <th className="text-left px-4 py-3 font-medium">Date</th>
+              <th className="text-left px-4 py-3 font-medium">Description</th>
+              <th className="text-left px-4 py-3 font-medium">Category</th>
+              <th className="text-right px-4 py-3 font-medium">Amount</th>
+              <th className="text-left px-4 py-3 font-medium">Notes</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
                 <td colSpan={5} className="text-center py-12 text-muted-foreground">
-                  Cargando...
+                  Loading...
                 </td>
               </tr>
             ) : transactions.length === 0 ? (
               <tr>
                 <td colSpan={5} className="text-center py-12 text-muted-foreground">
-                  No hay transacciones para este filtro
+                  No transactions matched this filter.
                 </td>
               </tr>
             ) : (
@@ -249,12 +249,12 @@ function TransaccionesContent() {
                               {tx.categoryName}
                             </span>
                           ) : (
-                            <span className="text-muted-foreground">Sin categoría</span>
+                            <span className="text-muted-foreground">No category</span>
                           )}
                         </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="none">Sin categoría</SelectItem>
+                        <SelectItem value="none">No category</SelectItem>
                         {categories.map(c => (
                           <SelectItem key={c.id} value={c.id}>
                             <span className="flex items-center gap-2">

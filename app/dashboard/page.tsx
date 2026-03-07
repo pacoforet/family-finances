@@ -10,8 +10,10 @@ import Link from 'next/link'
 import type { MonthSummary } from '@/lib/budget-calculator'
 import type { Category } from '@/db/schema'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useAppSettings } from '@/components/providers/AppSettingsProvider'
 
 export default function DashboardPage() {
+  const settings = useAppSettings()
   const now = new Date()
   const [year, setYear]       = useState(now.getFullYear())
   const [month, setMonth]     = useState(now.getMonth() + 1)
@@ -63,12 +65,14 @@ export default function DashboardPage() {
       {/* ── Header ───────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Panel de gastos</h1>
-          <p className="text-sm text-muted-foreground">Comparativa presupuesto vs gastos reales</p>
+          <h1 className="text-2xl font-semibold">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">
+            Budget versus actual spending for {settings.householdName}
+          </p>
         </div>
         <Button onClick={() => setShowAdd(true)}>
           <Plus className="h-4 w-4 mr-1.5" />
-          Añadir gasto
+          Add expense
         </Button>
       </div>
 
@@ -84,7 +88,7 @@ export default function DashboardPage() {
           <ChevronRight className="h-4 w-4" />
         </Button>
         <Button variant="outline" size="sm" onClick={goToCurrentMonth} disabled={isCurrentMonth}>
-          Mes actual
+          Current month
         </Button>
       </div>
 
@@ -157,9 +161,9 @@ export default function DashboardPage() {
       ) : !summary || summary.lines.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-14 gap-3">
-            <p className="text-muted-foreground text-sm">No hay presupuesto configurado para este mes.</p>
+            <p className="text-muted-foreground text-sm">No budget has been configured for this month yet.</p>
             <Button asChild size="sm" variant="outline">
-              <Link href="/presupuesto">Configurar presupuesto</Link>
+              <Link href="/presupuesto">Set up budget</Link>
             </Button>
           </CardContent>
         </Card>
@@ -171,7 +175,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-sm">
               <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
               <span className="text-red-800 dark:text-red-300">
-                <span className="font-semibold">Presupuesto superado</span>{' '}en{' '}
+                <span className="font-semibold">Over budget</span>{' '}in{' '}
                 {overBudget.map(l => l.categoryName).join(', ')}
               </span>
             </div>
@@ -184,9 +188,9 @@ export default function DashboardPage() {
               <CardContent className="pt-5 pb-4">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Gastado</p>
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Spent</p>
                     <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{formatCurrency(summary.totals.actual)}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{summary.totals.pct}% del presupuesto</p>
+                    <p className="text-xs text-muted-foreground mt-1">{summary.totals.pct}% of budget</p>
                   </div>
                   <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800">
                     <Wallet className="h-4 w-4 text-slate-500" />
@@ -199,9 +203,9 @@ export default function DashboardPage() {
               <CardContent className="pt-5 pb-4">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Presupuesto</p>
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Budget</p>
                     <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{formatCurrency(summary.totals.budgeted)}</p>
-                    <p className="text-xs text-muted-foreground mt-1">Total mensual</p>
+                    <p className="text-xs text-muted-foreground mt-1">Monthly total</p>
                   </div>
                   <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950">
                     <TrendingUp className="h-4 w-4 text-blue-500" />
@@ -219,7 +223,7 @@ export default function DashboardPage() {
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                      {summary.totals.variance >= 0 ? 'Ahorro' : 'Exceso'}
+                      {summary.totals.variance >= 0 ? 'Remaining' : 'Over'}
                     </p>
                     <p className={`text-2xl font-bold mt-1 font-mono tracking-tight ${
                       summary.totals.variance >= 0
@@ -229,7 +233,7 @@ export default function DashboardPage() {
                       {summary.totals.variance >= 0 ? '+' : ''}{formatCurrency(summary.totals.variance)}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {summary.totals.variance >= 0 ? 'Bajo presupuesto' : 'Sobre presupuesto'}
+                      {summary.totals.variance >= 0 ? 'Under budget' : 'Over budget'}
                     </p>
                   </div>
                   <div className={`p-2 rounded-lg ${
@@ -250,7 +254,7 @@ export default function DashboardPage() {
               <CardContent className="pt-5 pb-4">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Por persona</p>
+                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Per person</p>
                     <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{formatCurrency(summary.perPerson.actual)}</p>
                     <p className="text-xs text-muted-foreground mt-1">de {formatCurrency(summary.perPerson.budgeted)}</p>
                   </div>

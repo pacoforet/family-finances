@@ -14,14 +14,14 @@ export async function POST(request: NextRequest) {
   const { name, color, icon } = body
 
   if (!name || !color) {
-    return NextResponse.json({ error: 'Nombre y color son requeridos' }, { status: 400 })
+    return NextResponse.json({ error: 'Name and color are required.' }, { status: 400 })
   }
 
   const existing = await db.query.categories.findFirst({
     where: (c, { eq }) => eq(c.name, name),
   })
   if (existing) {
-    return NextResponse.json({ error: 'Ya existe una categoría con ese nombre' }, { status: 409 })
+    return NextResponse.json({ error: 'A category with that name already exists.' }, { status: 409 })
   }
 
   const maxSort = await db.query.categories.findMany({ orderBy: (c, { desc }) => [desc(c.sortOrder)] })

@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   const { description, categoryId } = body
 
   if (!description || !categoryId) {
-    return NextResponse.json({ error: 'Faltan campos requeridos' }, { status: 400 })
+    return NextResponse.json({ error: 'Description and category are required.' }, { status: 400 })
   }
 
   const now = new Date().toISOString()

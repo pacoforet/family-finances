@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
   const { description } = body
 
   if (!description) {
-    return NextResponse.json({ error: 'Descripción requerida' }, { status: 400 })
+    return NextResponse.json({ error: 'Description is required.' }, { status: 400 })
   }
 
   const rules = await db.select().from(mappingRules) as MappingRule[]

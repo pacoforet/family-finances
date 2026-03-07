@@ -23,7 +23,7 @@ export async function PATCH(
   await db.update(mappingRules).set(updates).where(eq(mappingRules.id, id))
   const updated = await db.select().from(mappingRules).where(eq(mappingRules.id, id))
 
-  if (!updated.length) return NextResponse.json({ error: 'No encontrada' }, { status: 404 })
+  if (!updated.length) return NextResponse.json({ error: 'Rule not found.' }, { status: 404 })
   return NextResponse.json({ rule: updated[0] })
 }
 

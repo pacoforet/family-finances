@@ -3,6 +3,7 @@ import { db } from '@/db'
 import { budgetLines, transactions, categories } from '@/db/schema'
 import { eq, and, gte, lt, sql } from 'drizzle-orm'
 import { computeMonthSummary } from '@/lib/budget-calculator'
+import { getPublicAppSettings } from '@/lib/app-settings'
 import { v4 as uuidv4 } from 'uuid'
 import type { BudgetLine } from '@/db/schema'
 
@@ -15,7 +16,7 @@ export async function GET(
   const month = parseInt(monthStr)
 
   if (isNaN(year) || isNaN(month) || month < 1 || month > 12) {
-    return NextResponse.json({ error: 'Año o mes inválido' }, { status: 400 })
+    return NextResponse.json({ error: 'Invalid year or month.' }, { status: 400 })
   }
 
   const lines = await db.select().from(budgetLines).where(
@@ -49,7 +50,8 @@ export async function GET(
   const allTxs = [...monthTxs, ...extraAnnualTxs]
 
   const cats    = await db.select().from(categories)
-  const summary = computeMonthSummary(year, month, lines, allTxs, cats)
+  const settings = await getPublicAppSettings()
+  const summary = computeMonthSummary(year, month, lines, allTxs, cats, settings.householdSize)
 
   return NextResponse.json({ summary })
 }
@@ -70,7 +72,7 @@ export async function POST(
   ) as BudgetLine[]
 
   if (!sourceLines.length) {
-    return NextResponse.json({ error: 'No hay presupuesto en el mes origen' }, { status: 404 })
+    return NextResponse.json({ error: 'No budget exists for the source month.' }, { status: 404 })
   }
 
   await db.transaction(async (tx) => {

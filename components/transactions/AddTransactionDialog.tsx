@@ -27,12 +27,12 @@ export function AddTransactionDialog({ open, onOpenChange, categories, onSaved }
 
   const handleSubmit = async () => {
     if (!descripcion || !importe || !fecha) {
-      setError('Descripción, importe y fecha son obligatorios')
+      setError('Description, amount, and date are required.')
       return
     }
     const amount = parseFloat(importe.replace(',', '.'))
     if (isNaN(amount)) {
-      setError('Importe inválido')
+      setError('Invalid amount.')
       return
     }
 
@@ -54,7 +54,7 @@ export function AddTransactionDialog({ open, onOpenChange, categories, onSaved }
 
       if (!res.ok) {
         const d = await res.json()
-        setError(d.error ?? 'Error al guardar')
+        setError(d.error ?? 'Unable to save transaction.')
       } else {
         setDescripcion('')
         setImporte('')
@@ -73,14 +73,14 @@ export function AddTransactionDialog({ open, onOpenChange, categories, onSaved }
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Añadir gasto manual</DialogTitle>
+          <DialogTitle>Add manual expense</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
-            <Label>Descripción</Label>
+            <Label>Description</Label>
             <Input
-              placeholder="Ej: Mercado municipal"
+              placeholder="Example: Grocery run"
               value={descripcion}
               onChange={e => setDescripcion(e.target.value)}
             />
@@ -88,7 +88,7 @@ export function AddTransactionDialog({ open, onOpenChange, categories, onSaved }
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label>Importe (€)</Label>
+              <Label>Amount</Label>
               <Input
                 placeholder="25.50"
                 value={importe}
@@ -96,7 +96,7 @@ export function AddTransactionDialog({ open, onOpenChange, categories, onSaved }
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Fecha</Label>
+              <Label>Date</Label>
               <Input
                 type="date"
                 value={fecha}
@@ -106,13 +106,13 @@ export function AddTransactionDialog({ open, onOpenChange, categories, onSaved }
           </div>
 
           <div className="space-y-1.5">
-            <Label>Categoría</Label>
+            <Label>Category</Label>
             <Select value={categoryId} onValueChange={setCategoryId}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecciona categoría..." />
+                <SelectValue placeholder="Select a category..." />
               </SelectTrigger>
               <SelectContent>
-                {categories.filter(c => c.name !== 'Sin categoría').map(c => (
+                {categories.map(c => (
                   <SelectItem key={c.id} value={c.id}>
                     <span className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full" style={{ backgroundColor: c.color }} />
@@ -125,9 +125,9 @@ export function AddTransactionDialog({ open, onOpenChange, categories, onSaved }
           </div>
 
           <div className="space-y-1.5">
-            <Label>Notas (opcional)</Label>
+            <Label>Notes (optional)</Label>
             <Textarea
-              placeholder="Cualquier detalle..."
+              placeholder="Any extra context..."
               value={notes}
               onChange={e => setNotes(e.target.value)}
               rows={2}
@@ -138,9 +138,9 @@ export function AddTransactionDialog({ open, onOpenChange, categories, onSaved }
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={handleSubmit} disabled={saving}>
-            {saving ? 'Guardando...' : 'Guardar'}
+            {saving ? 'Saving...' : 'Save'}
           </Button>
         </DialogFooter>
       </DialogContent>
