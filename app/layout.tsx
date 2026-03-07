@@ -6,6 +6,8 @@ import { AppSettingsProvider } from '@/components/providers/AppSettingsProvider'
 import { SetupGate } from '@/components/layout/SetupGate'
 import { getPublicAppSettings } from '@/lib/app-settings'
 
+export const dynamic = 'force-dynamic'
+
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getPublicAppSettings()
 
