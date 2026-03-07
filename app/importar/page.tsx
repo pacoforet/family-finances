@@ -90,7 +90,7 @@ export default function ImportarPage() {
       <div>
         <h1 className="text-2xl font-semibold">Import statement</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Upload a Revolut CSV to import your latest transactions.
+          Upload a CSV statement to import your latest transactions.
         </p>
       </div>
 
@@ -143,9 +143,9 @@ export default function ImportarPage() {
               onClick={() => document.getElementById('csv-input')?.click()}
             >
               <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
-              <p className="text-base font-medium">Drop a Revolut CSV here</p>
+              <p className="text-base font-medium">Drop a CSV statement here</p>
               <p className="text-sm text-muted-foreground mt-1">or click to browse</p>
-              <input
+            <input
                 id="csv-input"
                 type="file"
                 accept=".csv"
@@ -232,16 +232,14 @@ export default function ImportarPage() {
       {/* Instructions */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">How to export from Revolut</CardTitle>
+          <CardTitle className="text-base">CSV import notes</CardTitle>
         </CardHeader>
         <CardContent>
-          <ol className="text-sm space-y-1.5 text-muted-foreground list-decimal list-inside">
-            <li>Open Revolut and go to the account you want to export.</li>
-            <li>Choose the statement or export option.</li>
-            <li>Select the date range you want to import.</li>
-            <li>Export the statement as CSV.</li>
-            <li>Upload that file here.</li>
-          </ol>
+          <div className="text-sm space-y-2 text-muted-foreground">
+            <p>The current parser is optimized for Revolut-style CSV exports.</p>
+            <p>If your bank exports a CSV with similar columns, it may work, but support for arbitrary bank formats is not guaranteed yet.</p>
+            <p>Recommended flow: export your account statement as CSV, then upload it here.</p>
+          </div>
         </CardContent>
       </Card>
     </div>
