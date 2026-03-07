@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { CURRENCY_OPTIONS, LOCALE_OPTIONS } from '@/lib/app-config'
+import { CURRENCY_OPTIONS, DEFAULT_APP_NAME, DEFAULT_HOUSEHOLD_NAME, LOCALE_OPTIONS } from '@/lib/app-config'
 import { getUiCopy } from '@/lib/ui-copy'
 
 const STARTER_OPTIONS = [
@@ -22,8 +22,8 @@ export default function SetupPage() {
     []
   )
 
-  const [appName, setAppName] = useState('Budget Starter')
-  const [householdName, setHouseholdName] = useState('My Household')
+  const [appName, setAppName] = useState(DEFAULT_APP_NAME)
+  const [householdName, setHouseholdName] = useState(DEFAULT_HOUSEHOLD_NAME)
   const [defaultCurrency, setDefaultCurrency] = useState('USD')
   const [locale, setLocale] = useState('en-US')
   const copy = getUiCopy(locale)

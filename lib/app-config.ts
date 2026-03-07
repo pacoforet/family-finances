@@ -1,4 +1,4 @@
-export const DEFAULT_APP_NAME = 'Budget Starter'
+export const DEFAULT_APP_NAME = 'Family Finances'
 export const DEFAULT_HOUSEHOLD_NAME = 'My Household'
 export const DEFAULT_LOCALE = 'en-US'
 export const DEFAULT_CURRENCY = 'USD'

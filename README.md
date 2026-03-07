@@ -1,6 +1,6 @@
-# Budget Starter
+# Family Finances
 
-Budget Starter is a self-hostable household budget app built with Next.js, Drizzle, PostgreSQL, and Supabase Auth.
+Family Finances is a self-hostable household budget app built with Next.js, Drizzle, PostgreSQL, and Supabase Auth.
 
 It is designed as a reusable starter, not a hosted SaaS. One deployment maps to one household database. A fresh clone signs in, completes `/setup`, and chooses either a blank workspace or a generic starter template.
 
