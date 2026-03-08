@@ -62,7 +62,7 @@ export default function DashboardPage() {
     : []
 
   return (
-    <div className="p-6 space-y-6 w-full">
+    <div className="px-4 py-6 md:px-6 space-y-6 w-full">
 
       {/* ── Header ───────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
@@ -79,11 +79,11 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Month navigator ──────────────────────────────────────── */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         <Button variant="outline" size="icon" onClick={prevMonth}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <span className="text-lg font-medium min-w-48 text-center capitalize">
+        <span className="text-lg font-medium w-32 text-center capitalize">
           {formatMonthYear(year, month)}
         </span>
         <Button variant="outline" size="icon" onClick={nextMonth} disabled={isCurrentMonth}>
