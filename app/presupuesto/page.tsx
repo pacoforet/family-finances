@@ -184,7 +184,7 @@ export default function PresupuestoPage() {
   )
 
   return (
-    <div className="p-6 space-y-6 max-w-2xl">
+    <div className="px-4 py-6 md:px-6 space-y-6 max-w-2xl">
 
       {/* ── Header ───────────────────────────────────────────────── */}
       <div>
@@ -197,7 +197,7 @@ export default function PresupuestoPage() {
         <Button variant="outline" size="icon" onClick={prevMonth}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <span className="text-lg font-medium min-w-48 text-center capitalize">
+        <span className="text-lg font-medium w-32 text-center capitalize">
           {formatMonthYear(year, month)}
         </span>
         <Button variant="outline" size="icon" onClick={nextMonth}>

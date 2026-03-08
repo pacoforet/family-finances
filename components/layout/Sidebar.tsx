@@ -31,7 +31,7 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="w-56 border-r flex flex-col shrink-0 h-screen sticky top-0 bg-card">
+    <aside className="hidden md:flex w-56 border-r flex-col shrink-0 h-screen sticky top-0 bg-card">
 
       {/* ── Brand header ──────────────────────────────────────────── */}
       <Link href="/dashboard" className="px-4 py-5 border-b bg-gradient-to-br from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 transition-colors">

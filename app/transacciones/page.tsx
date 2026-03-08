@@ -114,7 +114,7 @@ function TransaccionesContent() {
   const totalExpenses = expenses.reduce((s, t) => s + Math.abs(t.importe), 0)
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="px-4 py-6 md:px-6 space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">{copy.transactions.title}</h1>
@@ -141,7 +141,7 @@ function TransaccionesContent() {
           <Button variant="outline" size="icon" onClick={prevMonth} disabled={allMonths}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className={`text-sm font-medium min-w-40 text-center capitalize px-1 ${allMonths ? 'text-muted-foreground' : ''}`}>
+          <span className={`text-sm font-medium w-28 text-center capitalize px-1 ${allMonths ? 'text-muted-foreground' : ''}`}>
             {formatMonthYear(year, month)}
           </span>
           <Button variant="outline" size="icon" onClick={nextMonth} disabled={allMonths || isCurrentMonth}>
@@ -165,7 +165,7 @@ function TransaccionesContent() {
           </SelectContent>
         </Select>
 
-        <div className="relative flex-1 min-w-48">
+        <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={copy.transactions.searchMerchant}
@@ -194,8 +194,8 @@ function TransaccionesContent() {
         </Button>
       </div>
 
-      {/* Table */}
-      <div className="rounded-lg border overflow-auto">
+      {/* Desktop table */}
+      <div className="hidden md:block rounded-lg border overflow-auto">
         <table className="w-full text-sm">
           <thead className="bg-muted">
             <tr>
@@ -297,6 +297,57 @@ function TransaccionesContent() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile card list */}
+      <div className="md:hidden rounded-lg border divide-y">
+        {loading ? (
+          <div className="text-center py-12 text-muted-foreground text-sm">
+            {copy.transactions.loading}
+          </div>
+        ) : transactions.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground text-sm">
+            {copy.transactions.noMatches}
+          </div>
+        ) : (
+          transactions.map(tx => (
+            <div
+              key={tx.id}
+              className="flex items-center justify-between px-4 py-3 hover:bg-muted/50 cursor-pointer gap-3"
+              onClick={() => setSelectedTx(tx)}
+            >
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    {formatDate(tx.fechaInicio)}
+                  </span>
+                  {tx.splitAnnual && <CalendarClock className="h-3 w-3 text-blue-400 shrink-0" />}
+                  {tx.budgetDate && <Calendar className="h-3 w-3 text-violet-400 shrink-0" />}
+                </div>
+                <p className="text-sm font-medium truncate">{tx.descripcion}</p>
+                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                  {tx.categoryId ? (
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <span
+                        className="w-1.5 h-1.5 rounded-full shrink-0"
+                        style={{ backgroundColor: tx.categoryColor ?? '#9CA3AF' }}
+                      />
+                      {tx.categoryName}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">{copy.transactions.noCategory}</span>
+                  )}
+                  {tx.excludeFromBudget && (
+                    <Badge variant="outline" className="text-[10px] py-0">{copy.editTx.excludeBudget}</Badge>
+                  )}
+                </div>
+              </div>
+              <span className={`text-sm font-mono font-semibold shrink-0 ${tx.importe < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                {formatCurrency(tx.importe)}
+              </span>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Pagination */}

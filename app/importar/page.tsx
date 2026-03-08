@@ -88,7 +88,7 @@ export default function ImportarPage() {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="px-4 py-6 md:px-6 max-w-4xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">{copy.import.title}</h1>
         <p className="text-muted-foreground text-sm mt-1">{copy.import.subtitle}</p>
@@ -103,7 +103,7 @@ export default function ImportarPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="text-center p-4 bg-green-50 dark:bg-green-950 rounded-lg">
                 <div className="text-2xl font-bold text-green-600">{result.imported}</div>
                 <div className="text-sm text-muted-foreground">{copy.import.imported}</div>
@@ -172,8 +172,8 @@ export default function ImportarPage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Preview table */}
-                <div className="rounded-lg border overflow-auto max-h-96">
+                {/* Preview table — desktop */}
+                <div className="hidden md:block rounded-lg border overflow-auto max-h-96">
                   <table className="w-full text-sm">
                     <thead className="bg-muted sticky top-0">
                       <tr>
@@ -202,6 +202,24 @@ export default function ImportarPage() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+
+                {/* Preview card list — mobile */}
+                <div className="md:hidden rounded-lg border divide-y max-h-96 overflow-auto">
+                  {preview.map((row, i) => (
+                    <div key={i} className="flex items-center justify-between px-4 py-3 gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(row.fechaInicio)}</span>
+                          <Badge variant="outline" className="text-[10px] font-normal py-0">{row.tipo}</Badge>
+                        </div>
+                        <p className="text-sm truncate">{row.descripcion}</p>
+                      </div>
+                      <span className={`text-sm font-mono font-semibold shrink-0 ${row.importe < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        {formatCurrency(row.importe)}
+                      </span>
+                    </div>
+                  ))}
                 </div>
 
                 {error && (

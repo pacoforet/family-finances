@@ -212,7 +212,7 @@ export default function CategoriasPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="px-4 py-6 md:px-6 space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">{copy.categories.title}</h1>
         <p className="text-muted-foreground text-sm">{copy.categories.subtitle}</p>
@@ -463,7 +463,7 @@ export default function CategoriasPage() {
                   <CardTitle className="text-base">{copy.categories.addRule}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="space-y-1.5">
                       <Label>{copy.categories.type}</Label>
                       <Select value={newMatchType} onValueChange={setNewMatchType}>
@@ -478,7 +478,7 @@ export default function CategoriasPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-1.5 col-span-2">
+                    <div className="space-y-1.5 sm:col-span-2">
                       <Label>{copy.categories.value}</Label>
                       <Input
                         placeholder={copy.categories.exampleMerchant}
@@ -488,7 +488,7 @@ export default function CategoriasPage() {
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="space-y-1.5">
                       <Label>{copy.categories.priority}</Label>
                       <Input
@@ -497,7 +497,7 @@ export default function CategoriasPage() {
                         onChange={e => setNewPriority(e.target.value)}
                       />
                     </div>
-                    <div className="space-y-1.5 col-span-2">
+                    <div className="space-y-1.5 sm:col-span-2">
                       <Label>{copy.categories.notesOptional}</Label>
                       <Input
                         placeholder={copy.categories.optionalDescription}

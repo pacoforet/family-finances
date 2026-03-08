@@ -118,7 +118,7 @@ export default function InformesPage() {
   const yearPerson  = yearTotal / Math.max(settings.householdSize, 1)
 
   return (
-    <div className="p-6 space-y-6 w-full">
+    <div className="px-4 py-6 md:px-6 space-y-6 w-full">
 
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
@@ -151,7 +151,7 @@ export default function InformesPage() {
           onClick={view === 'mensual' ? prevMonth : () => { setLoading(true); setYear(y => y - 1) }}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        <span className="text-lg font-medium min-w-48 text-center capitalize">
+        <span className="text-lg font-medium w-32 text-center capitalize">
           {view === 'mensual' ? formatMonthYear(year, month) : String(year)}
         </span>
         <Button
@@ -424,7 +424,7 @@ export default function InformesPage() {
           </Card>
 
           {/* ── Annual KPIs ───────────────────────────────────────────────── */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
               { label: copy.reports.totalSpent, value: formatCurrency(yearTotal) },
               { label: copy.reports.monthlyAverage, value: formatCurrency(yearAvg), note: `${yearMonthsWithData.length} ${copy.reports.monthsWithData}` },
