@@ -48,35 +48,31 @@ npm install
 cp .env.example .env.local
 ```
 
-3. Create a Supabase project and fill in:
+3. Create a Supabase project at [supabase.com](https://supabase.com) and fill in `.env.local`:
 
-- `DATABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `DATABASE_URL` — found in **Project Settings → Database → Connection string → URI** (use the pooler URI for Vercel deployments)
+- `NEXT_PUBLIC_SUPABASE_URL` — found in **Project Settings → API → Project URL**
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — found in **Project Settings → API → anon / public key**
 
-4. Run database migrations.
-
-```bash
-npm run db:migrate
-```
-
-5. Seed the minimal baseline data.
+4. Run database migrations and seed.
 
 ```bash
-npm run db:seed
+npm run db:setup
 ```
 
-6. Create your first email/password user in Supabase Auth.
+This runs `db:generate`, `db:migrate`, and `db:seed` in sequence. You can also run each step individually if needed.
 
-Use the Supabase dashboard or your preferred admin flow before first login.
+5. Create your first user in Supabase Auth.
 
-7. Start the app locally.
+Go to **Authentication → Users → Add user** in the Supabase dashboard, choose *Create new user*, and enter an email and password. This is the account you will use to sign in.
+
+6. Start the app locally.
 
 ```bash
 npm run dev
 ```
 
-8. Open [http://localhost:3000/login](http://localhost:3000/login), sign in, and complete `/setup`.
+7. Open [http://localhost:3000/login](http://localhost:3000/login), sign in with the user you just created, and complete `/setup`.
 
 ## First-Run Setup
 
@@ -112,12 +108,16 @@ npm run db:seed
 
 ### Recommended setup
 
-1. Create a Supabase project.
-2. Import this repo into Vercel.
-3. Add the environment variables from `.env.example`.
-4. Run the Drizzle migrations against your production database.
-5. Create the first user in Supabase Auth.
-6. Open the deployed app, sign in, and complete `/setup`.
+1. Create a Supabase project at [supabase.com](https://supabase.com).
+2. Import this repo into Vercel and add the three environment variables from `.env.example` in the Vercel project settings.
+3. Run the migrations against your Supabase database. You can do this locally by pointing `DATABASE_URL` at your production database and running:
+
+```bash
+npm run db:setup
+```
+
+4. Go to **Authentication → Users → Add user** in the Supabase dashboard and create your first user.
+5. Open the deployed app, sign in, and complete `/setup`.
 
 ### Notes
 
