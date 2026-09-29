@@ -12,6 +12,7 @@ import {
 import type { MonthSummary } from '@/lib/budget-calculator'
 import { useAppSettings } from '@/components/providers/AppSettingsProvider'
 import { useUiCopy } from '@/lib/ui-copy'
+import { fetchJson } from '@/lib/fetch-json'
 
 // ─── Custom tooltip for donut chart ─────────────────────────────────────────
 function PieTooltip({ active, payload, total }: { active?: boolean; payload?: { name: string; value: number; payload: { color: string } }[]; total: number }) {
@@ -64,17 +65,16 @@ export default function InformesPage() {
 
   useEffect(() => {
     if (view !== 'mensual') return
-    fetch(`/api/budget/${year}/${month}`)
-      .then(r => r.json())
+    fetchJson(`/api/budget/${year}/${month}`)
       .then(d => { setSummary(d.summary); setLoading(false) })
-      .catch(() => setLoading(false))
-  }, [year, month, view])
+      .catch(() => { setSummary(null); setLoading(false); alert(copy.common.loadFailed) })
+  }, [year, month, view, copy])
 
   useEffect(() => {
     if (view !== 'anual') return
     Promise.all(
       Array.from({ length: 12 }, (_, i) =>
-        fetch(`/api/budget/${year}/${i + 1}`).then(r => r.json())
+        fetchJson(`/api/budget/${year}/${i + 1}`)
       )
     ).then(results => {
       setYearData(results.map((d, i) => ({
@@ -83,8 +83,8 @@ export default function InformesPage() {
         presupuesto: d.summary?.totals.budgeted ?? 0,
       })))
       setLoading(false)
-    }).catch(() => setLoading(false))
-  }, [year, view])
+    }).catch(() => { setLoading(false); alert(copy.common.loadFailed) })
+  }, [year, view, copy])
 
   const prevMonth = () => {
     setLoading(true)

@@ -5,6 +5,7 @@ import { eq, asc, isNull, ne, or, inArray, and } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
 import { applyMappingRules } from '@/lib/category-mapper'
 import type { MappingRule } from '@/db/schema'
+import { invalidJsonResponse, readJsonBody } from '@/lib/api'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
@@ -20,7 +21,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json()
+  const body = await readJsonBody(request)
+  if (!body) return invalidJsonResponse()
   const { categoryId, matchType, matchValue, priority, notes } = body
 
   if (!categoryId || !matchType || !matchValue) {

@@ -13,7 +13,7 @@ It is designed as a reusable starter, not a hosted SaaS. One deployment maps to 
 - Reports for monthly and yearly spending trends
 - Manual transaction entry and transaction editing
 - Rule-based auto-categorization for future imports
-- CSV transaction import with a parser optimized for Revolut-style exports
+- CSV transaction import for Revolut exports (Spanish and English)
 - Single-household deployment model that is straightforward to self-host
 
 ## Stack
@@ -66,6 +66,8 @@ This runs `db:generate`, `db:migrate`, and `db:seed` in sequence. You can also r
 
 Go to **Authentication → Users → Add user** in the Supabase dashboard, choose *Create new user*, and enter an email and password. This is the account you will use to sign in.
 
+Then turn off public sign-ups in **Authentication → Sign In / Providers → Allow new users to sign up**. Every signed-in user has full access to the household data, and the anon key is public, so with sign-ups enabled anyone could create an account.
+
 6. Start the app locally.
 
 ```bash
@@ -116,10 +118,13 @@ npm run db:seed
 npm run db:setup
 ```
 
-4. Go to **Authentication → Users → Add user** in the Supabase dashboard and create your first user.
+4. Go to **Authentication → Users → Add user** in the Supabase dashboard and create your first user, then disable **Allow new users to sign up**.
 5. Open the deployed app, sign in, and complete `/setup`.
 
 ### Notes
+
+- The app reads and writes data only on the server through `DATABASE_URL`. The migrations enable RLS and revoke table access for the `anon` and `authenticated` roles, so the Supabase Data API exposes nothing. Keep it that way: do not add permissive RLS policies.
+- In production the app refuses to serve requests (HTTP 503) when the Supabase variables are missing, instead of running without authentication.
 
 - This repo does not create a hosted multi-tenant product.
 - Each deployment should use its own database.
@@ -127,7 +132,7 @@ npm run db:setup
 
 ## CSV Import Support
 
-The current parser is optimized for Revolut-style CSV exports and some similar bank statements may work. Arbitrary bank CSV formats are not guaranteed yet. If you want broader import support, add additional parsers in `lib/csv-parser.ts`.
+The current parser supports Revolut CSV exports in Spanish and English (headers, states and amount formats such as `1.234,56` or `1,234.56`), and some similar bank statements may work. Arbitrary bank CSV formats are not guaranteed yet. If you want broader import support, add additional parsers in `lib/csv-parser.ts`.
 
 ## Repository Hygiene
 

@@ -12,6 +12,7 @@ import { AddTransactionDialog } from '@/components/transactions/AddTransactionDi
 import { EditTransactionSheet } from '@/components/transactions/EditTransactionSheet'
 import type { Category } from '@/db/schema'
 import { useUiCopy } from '@/lib/ui-copy'
+import { fetchJson } from '@/lib/fetch-json'
 
 interface TxWithCategory {
   id: string
@@ -72,8 +73,10 @@ function TransaccionesContent() {
   const [selectedTx, setSelectedTx]  = useState<TxWithCategory | null>(null)
 
   useEffect(() => {
-    fetch('/api/categories').then(r => r.json()).then(d => setCategories(d.categories))
-  }, [])
+    fetchJson('/api/categories')
+      .then(d => setCategories(d.categories))
+      .catch(() => alert(copy.common.loadFailed))
+  }, [copy])
 
   const loadTransactions = useCallback(async () => {
     const params = new URLSearchParams({
@@ -86,26 +89,31 @@ function TransaccionesContent() {
     if (uncategorized) params.set('uncategorized', 'true')
 
     try {
-      const res = await fetch(`/api/transactions?${params}`)
-      const data = await res.json()
+      const data = await fetchJson(`/api/transactions?${params}`)
       setTransactions(data.transactions)
       setTotal(data.total)
       setTotalPages(data.totalPages)
+    } catch {
+      alert(copy.common.loadFailed)
     } finally {
       setLoading(false)
     }
-  }, [year, month, page, catFilter, search, uncategorized, allMonths])
+  }, [year, month, page, catFilter, search, uncategorized, allMonths, copy])
 
   useEffect(() => {
     loadTransactions()
   }, [loadTransactions])
 
   const updateCategory = async (txId: string, categoryId: string | null) => {
-    await fetch(`/api/transactions/${txId}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ categoryId }),
-    })
+    try {
+      await fetchJson(`/api/transactions/${txId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categoryId }),
+      })
+    } catch {
+      alert(copy.common.requestFailed)
+    }
     setLoading(true)
     loadTransactions()
   }

@@ -3,6 +3,7 @@ import { db } from '@/db'
 import { categories } from '@/db/schema'
 import { asc } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
+import { invalidJsonResponse, readJsonBody } from '@/lib/api'
 
 export async function GET() {
   const cats = await db.select().from(categories).orderBy(asc(categories.sortOrder))
@@ -10,7 +11,8 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json()
+  const body = await readJsonBody(request)
+  if (!body) return invalidJsonResponse()
   const { name, color, icon } = body
 
   if (!name || !color) {

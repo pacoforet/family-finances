@@ -10,6 +10,7 @@ import type { Category } from '@/db/schema'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAppSettings } from '@/components/providers/AppSettingsProvider'
 import { useUiCopy } from '@/lib/ui-copy'
+import { fetchJson } from '@/lib/fetch-json'
 
 interface BudgetLineRow {
   id: string
@@ -56,13 +57,14 @@ export default function PresupuestoPage() {
   }, [applyTargets])
 
   useEffect(() => {
-    fetch('/api/categories').then(r => r.json()).then(d => setCategories(d.categories))
-  }, [])
+    fetchJson('/api/categories')
+      .then(d => setCategories(d.categories))
+      .catch(() => alert(copy.common.loadFailed))
+  }, [copy])
 
   useEffect(() => {
     setLoading(true)
-    fetch(`/api/budget?year=${year}`)
-      .then(r => r.json())
+    fetchJson(`/api/budget?year=${year}`)
       .then(d => {
         const monthLines = d.budgetLines.filter(
           (l: BudgetLineRow) => l.year === year && l.month === month
@@ -74,8 +76,9 @@ export default function PresupuestoPage() {
         }
         setEdits(initial)
       })
+      .catch(() => alert(copy.common.loadFailed))
       .finally(() => setLoading(false))
-  }, [year, month])
+  }, [year, month, copy])
 
   useEffect(() => {
     if (categories.length === 0) return
@@ -104,14 +107,19 @@ export default function PresupuestoPage() {
     const linesPayload = categories
       .filter(c => !c.isIncome)
       .map(c => ({ categoryId: c.id, amount: parseFloat(edits[c.id] ?? '0') || 0 }))
-    await fetch('/api/budget', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ year, month, lines: linesPayload }),
-    })
-    setSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    try {
+      await fetchJson('/api/budget', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ year, month, lines: linesPayload }),
+      })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : copy.common.requestFailed)
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleClone = async () => {

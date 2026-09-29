@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/db'
 import { transactions, categories } from '@/db/schema'
-import { eq, desc, and, like, isNull, sql } from 'drizzle-orm'
+import { eq, desc, and, ilike, isNull, sql, count } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
 import { getPublicAppSettings } from '@/lib/app-settings'
+import { MANUAL_TRANSACTION_STATE } from '@/lib/transaction-states'
+import { invalidJsonResponse, readJsonBody } from '@/lib/api'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
@@ -11,9 +13,13 @@ export async function GET(request: NextRequest) {
   const catId  = searchParams.get('categoryId')
   const search = searchParams.get('search')
   const uncategorized = searchParams.get('uncategorized') === 'true'
-  const page   = parseInt(searchParams.get('page') ?? '1')
-  const limit  = parseInt(searchParams.get('limit') ?? '50')
+  const page   = Math.max(1, parseInt(searchParams.get('page') ?? '1') || 1)
+  const limit  = Math.min(500, Math.max(1, parseInt(searchParams.get('limit') ?? '50') || 50))
   const offset = (page - 1) * limit
+
+  if (month && !/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+    return NextResponse.json({ error: 'Month must use the YYYY-MM format.' }, { status: 400 })
+  }
 
   const conditions = []
 
@@ -23,8 +29,11 @@ export async function GET(request: NextRequest) {
     const nextMonth = parseInt(mon) === 12
       ? `${parseInt(year) + 1}-01-01 00:00:00`
       : `${year}-${String(parseInt(mon) + 1).padStart(2, '0')}-01 00:00:00`
-    conditions.push(sql`${transactions.fechaInicio} >= ${start}`)
-    conditions.push(sql`${transactions.fechaInicio} < ${nextMonth}`)
+    // Same effective date as the budget summary: a transaction moved to another
+    // month (budget_date) is listed in that month.
+    const effectiveDate = sql`COALESCE(${transactions.budgetDate}, ${transactions.fechaInicio})`
+    conditions.push(sql`${effectiveDate} >= ${start}`)
+    conditions.push(sql`${effectiveDate} < ${nextMonth}`)
   }
 
   if (catId) {
@@ -37,7 +46,9 @@ export async function GET(request: NextRequest) {
   }
 
   if (search) {
-    conditions.push(like(transactions.descripcion, `%${search}%`))
+    // Case-insensitive, with LIKE wildcards in the user's text matched literally.
+    const escaped = search.replace(/[\\%_]/g, (ch) => `\\${ch}`)
+    conditions.push(ilike(transactions.descripcion, `%${escaped}%`))
   }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined
@@ -56,7 +67,7 @@ export async function GET(request: NextRequest) {
     .offset(offset)
 
   const totalRow = await db
-    .select({ count: sql<number>`count(*)` })
+    .select({ count: count() })
     .from(transactions)
     .where(where)
 
@@ -73,11 +84,17 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json()
+  const body = await readJsonBody(request)
+  if (!body) return invalidJsonResponse()
   const { descripcion, importe, fechaInicio, categoryId, notes } = body
 
   if (!descripcion || importe == null || !fechaInicio) {
     return NextResponse.json({ error: 'Description, amount, and date are required.' }, { status: 400 })
+  }
+
+  const amount = Number(importe)
+  if (!Number.isFinite(amount)) {
+    return NextResponse.json({ error: 'Amount must be a number.' }, { status: 400 })
   }
 
   const now = new Date().toISOString()
@@ -87,13 +104,13 @@ export async function POST(request: NextRequest) {
   const tx = await db.insert(transactions).values({
     id,
     descripcion,
-    importe: parseFloat(importe),
+    importe: amount,
     fechaInicio,
     categoryId:     categoryId ?? null,
     categorySource: categoryId ? 'manual' : null,
     notes:          notes ?? null,
     isManual:       true,
-    state:          'COMPLETADO',
+    state:          MANUAL_TRANSACTION_STATE,
     divisa:         settings.defaultCurrency,
     comision:       0,
     excludeFromBudget: false,

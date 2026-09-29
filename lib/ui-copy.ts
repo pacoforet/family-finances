@@ -2,6 +2,10 @@ import { useAppSettings } from '@/components/providers/AppSettingsProvider'
 
 const COPY = {
   en: {
+    common: {
+      loadFailed: 'Unable to load data. Please reload the page.',
+      requestFailed: 'Something went wrong. Please try again.',
+    },
     nav: {
       dashboard: 'Overview',
       transactions: 'Transactions',
@@ -255,6 +259,10 @@ const COPY = {
     },
   },
   es: {
+    common: {
+      loadFailed: 'No se pudieron cargar los datos. Recarga la página.',
+      requestFailed: 'Algo salió mal. Inténtalo de nuevo.',
+    },
     nav: {
       dashboard: 'Resumen',
       transactions: 'Transacciones',

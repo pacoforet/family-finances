@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/db'
 import { transactions } from '@/db/schema'
 import { eq, and, isNull } from 'drizzle-orm'
+import { invalidJsonResponse, readJsonBody } from '@/lib/api'
 
 /**
  * POST /api/transactions/bulk-categorize
@@ -10,7 +11,8 @@ import { eq, and, isNull } from 'drizzle-orm'
  * Returns: { updated: number }
  */
 export async function POST(request: NextRequest) {
-  const body = await request.json()
+  const body = await readJsonBody(request)
+  if (!body) return invalidJsonResponse()
   const { description, categoryId } = body
 
   if (!description || !categoryId) {

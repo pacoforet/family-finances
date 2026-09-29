@@ -12,6 +12,7 @@ import type { Category } from '@/db/schema'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAppSettings } from '@/components/providers/AppSettingsProvider'
 import { useUiCopy } from '@/lib/ui-copy'
+import { fetchJson } from '@/lib/fetch-json'
 
 export default function DashboardPage() {
   const settings = useAppSettings()
@@ -25,15 +26,16 @@ export default function DashboardPage() {
   const [showAdd, setShowAdd] = useState(false)
 
   useEffect(() => {
-    fetch('/api/categories').then(r => r.json()).then(d => setCategories(d.categories))
-  }, [])
+    fetchJson('/api/categories')
+      .then(d => setCategories(d.categories))
+      .catch(() => alert(copy.common.loadFailed))
+  }, [copy])
 
   useEffect(() => {
-    fetch(`/api/budget/${year}/${month}`)
-      .then(r => r.json())
+    fetchJson(`/api/budget/${year}/${month}`)
       .then(d => { setSummary(d.summary); setLoading(false) })
-      .catch(() => setLoading(false))
-  }, [year, month])
+      .catch(() => { setSummary(null); setLoading(false); alert(copy.common.loadFailed) })
+  }, [year, month, copy])
 
   const prevMonth = () => {
     setLoading(true)
@@ -389,10 +391,9 @@ export default function DashboardPage() {
         categories={categories}
         onSaved={() => {
           setLoading(true)
-          fetch(`/api/budget/${year}/${month}`)
-            .then(r => r.json())
+          fetchJson(`/api/budget/${year}/${month}`)
             .then(d => { setSummary(d.summary); setLoading(false) })
-            .catch(() => setLoading(false))
+            .catch(() => { setLoading(false); alert(copy.common.loadFailed) })
         }}
       />
     </div>

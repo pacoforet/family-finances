@@ -3,9 +3,11 @@ import { db } from '@/db'
 import { mappingRules } from '@/db/schema'
 import { findMatchingRule } from '@/lib/category-mapper'
 import type { MappingRule } from '@/db/schema'
+import { invalidJsonResponse, readJsonBody } from '@/lib/api'
 
 export async function POST(request: NextRequest) {
-  const body = await request.json()
+  const body = await readJsonBody(request)
+  if (!body) return invalidJsonResponse()
   const { description } = body
 
   if (!description) {

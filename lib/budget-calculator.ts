@@ -1,4 +1,5 @@
 import type { Transaction, BudgetLine, Category } from '@/db/schema'
+import { isCompletedState } from '@/lib/transaction-states'
 
 export type BudgetStatus = 'ok' | 'warning' | 'over'
 
@@ -47,7 +48,7 @@ export function computeMonthSummary(
 
   // Expenses: negative importe, completed, not excluded, not an income category
   const expenses = allTransactions.filter(
-    t => t.importe < 0 && t.state === 'COMPLETADO' && !t.excludeFromBudget && !incomeCatIds.has(t.categoryId ?? '')
+    t => t.importe < 0 && isCompletedState(t.state) && !t.excludeFromBudget && !incomeCatIds.has(t.categoryId ?? '')
   )
 
   // Income: positive importe (also include transactions in income categories)

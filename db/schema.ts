@@ -1,4 +1,7 @@
-import { pgTable, text, real, integer, boolean } from 'drizzle-orm/pg-core'
+import { pgTable, text, numeric, integer, boolean, uniqueIndex } from 'drizzle-orm/pg-core'
+
+// Money is stored as exact decimals; `mode: 'number'` keeps the JS API numeric.
+const money = (name: string) => numeric(name, { precision: 14, scale: 2, mode: 'number' })
 
 // ─── App Settings ───────────────────────────────────────────────────────────
 export const appSettings = pgTable('app_settings', {
@@ -31,9 +34,11 @@ export const budgetLines = pgTable('budget_lines', {
   categoryId: text('category_id').notNull().references(() => categories.id),
   year:       integer('year').notNull(),
   month:      integer('month').notNull(),
-  amount:     real('amount').notNull(),
+  amount:     money('amount').notNull(),
   notes:      text('notes'),
-})
+}, (t) => [
+  uniqueIndex('budget_lines_category_year_month_unique').on(t.categoryId, t.year, t.month),
+])
 
 // ─── Mapping Rules ───────────────────────────────────────────────────────────
 export const mappingRules = pgTable('mapping_rules', {
@@ -69,11 +74,11 @@ export const transactions = pgTable('transactions', {
   fechaInicio:       text('fecha_inicio').notNull(),
   fechaFin:          text('fecha_fin'),
   descripcion:       text('descripcion').notNull(),
-  importe:           real('importe').notNull(),
-  comision:          real('comision').default(0),
+  importe:           money('importe').notNull(),
+  comision:          money('comision').default(0),
   divisa:            text('divisa').default('EUR'),
   state:             text('state'),
-  saldo:             real('saldo'),
+  saldo:             money('saldo'),
 
   categoryId:        text('category_id').references(() => categories.id),
   categorySource:    text('category_source'),

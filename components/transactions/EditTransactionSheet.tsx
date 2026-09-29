@@ -4,10 +4,11 @@ import { useState } from 'react'
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { formatCurrency, formatDate, formatMonthYear, monthName } from '@/lib/format'
+import { formatCurrency, formatDate, formatMonthYear, monthName, parseDateParts } from '@/lib/format'
 import { Ban, Tag, CalendarClock, CheckCircle2, Calendar } from 'lucide-react'
 import type { Category } from '@/db/schema'
 import { useUiCopy } from '@/lib/ui-copy'
+import { fetchJson } from '@/lib/fetch-json'
 
 interface TxWithCategory {
   id: string
@@ -62,16 +63,20 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
 
   // Budget date override (imputar a otro mes)
   const initialBD = parseBudgetDate(tx.budgetDate ?? null)
-  const txDate    = new Date(tx.fechaInicio)
+  // Calendar date as stored, so the browser timezone cannot shift the month
+  const txDate    = parseDateParts(tx.fechaInicio) ?? (() => {
+    const now = new Date()
+    return { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() }
+  })()
   const [budgetDateActive, setBudgetDateActive] = useState(!!initialBD)
   const [budgetMonth, setBudgetMonth] = useState(() => {
     if (initialBD) return initialBD.month
     // Default: next month after the transaction
-    return txDate.getMonth() === 11 ? 1 : txDate.getMonth() + 2
+    return txDate.month === 12 ? 1 : txDate.month + 1
   })
   const [budgetYear, setBudgetYear] = useState(() => {
     if (initialBD) return initialBD.year
-    return txDate.getMonth() === 11 ? txDate.getFullYear() + 1 : txDate.getFullYear()
+    return txDate.month === 12 ? txDate.year + 1 : txDate.year
   })
 
   const isExpense = tx.importe < 0
@@ -98,7 +103,7 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
       })
 
       if (!res.ok) {
-        const d = await res.json()
+        const d = await res.json().catch(() => ({}))
         setError(d.error ?? copy.addTx.saveError)
         return
       }
@@ -147,8 +152,10 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
   const handleDelete = async () => {
     setDeleting(true)
     try {
-      await fetch(`/api/transactions/${tx.id}`, { method: 'DELETE' })
+      await fetchJson(`/api/transactions/${tx.id}`, { method: 'DELETE' })
       onSaved()
+    } catch {
+      setError(copy.common.requestFailed)
     } finally {
       setDeleting(false)
     }

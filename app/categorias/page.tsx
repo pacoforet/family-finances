@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge'
 import type { Category, MappingRule } from '@/db/schema'
 import { useUiCopy } from '@/lib/ui-copy'
+import { fetchJson } from '@/lib/fetch-json'
 
 const PRESET_COLORS = [
   '#3B82F6', '#14B8A6', '#8B5CF6', '#22C55E', '#F97316',
@@ -56,20 +57,20 @@ export default function CategoriasPage() {
   const [testing, setTesting]       = useState(false)
 
   useEffect(() => {
-    fetch('/api/categories')
-      .then(r => r.json())
+    fetchJson('/api/categories')
       .then(d => {
         setCategories(d.categories)
         if (d.categories.length > 0) setSelectedCat(d.categories[0].id)
       })
-  }, [])
+      .catch(() => alert(copy.common.loadFailed))
+  }, [copy])
 
   useEffect(() => {
     if (!selectedCat) return
-    fetch(`/api/mapping-rules?categoryId=${selectedCat}`)
-      .then(r => r.json())
+    fetchJson(`/api/mapping-rules?categoryId=${encodeURIComponent(selectedCat)}`)
       .then(d => setRules(d.rules))
-  }, [selectedCat])
+      .catch(() => alert(copy.common.loadFailed))
+  }, [selectedCat, copy])
 
   // ---- Category CRUD ----
 
@@ -82,7 +83,7 @@ export default function CategoriasPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: newCatName.trim(), color: newCatColor }),
     })
-    const data = await res.json()
+    const data = await res.json().catch(() => ({}))
     setSavingCat(false)
     if (!res.ok) {
       setCatError(data.error ?? copy.categories.create)
@@ -114,12 +115,14 @@ export default function CategoriasPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: editCatName.trim(), color: editCatColor, isIncome: editCatIsIncome }),
     })
-    const data = await res.json()
+    const data = await res.json().catch(() => ({}))
     setSavingEditCat(false)
-    if (res.ok) {
-      setCategories(prev => prev.map(c => c.id === cat.id ? data.category : c))
-      setEditingCatId(null)
+    if (!res.ok) {
+      alert(data.error ?? copy.common.requestFailed)
+      return
     }
+    setCategories(prev => prev.map(c => c.id === cat.id ? data.category : c))
+    setEditingCatId(null)
   }
 
   const toggleIsIncome = async (cat: Category) => {
@@ -128,10 +131,12 @@ export default function CategoriasPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isIncome: !cat.isIncome }),
     })
-    const data = await res.json()
-    if (res.ok) {
-      setCategories(prev => prev.map(c => c.id === cat.id ? data.category : c))
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      alert(data.error ?? copy.common.requestFailed)
+      return
     }
+    setCategories(prev => prev.map(c => c.id === cat.id ? data.category : c))
   }
 
   const deleteCategory = async (cat: Category) => {
@@ -165,18 +170,27 @@ export default function CategoriasPage() {
         notes: newNotes || null,
       }),
     })
-    const data = await res.json()
+    const data = await res.json().catch(() => ({}))
     setSaving(false)
-    if (res.ok) {
-      setRules(prev => [...prev, data.rule].sort((a, b) => a.priority - b.priority))
-      setNewMatchValue('')
-      setNewNotes('')
+    if (!res.ok) {
+      alert(data.error ?? copy.common.requestFailed)
+      return
     }
+    // The API upserts, so an existing rule may come back updated rather than new
+    setRules(prev => [...prev.filter(r => r.id !== data.rule.id), data.rule]
+      .filter(r => r.categoryId === selectedCat)
+      .sort((a, b) => a.priority - b.priority))
+    setNewMatchValue('')
+    setNewNotes('')
   }
 
   const deleteRule = async (ruleId: string) => {
-    await fetch(`/api/mapping-rules/${ruleId}`, { method: 'DELETE' })
-    setRules(prev => prev.filter(r => r.id !== ruleId))
+    try {
+      await fetchJson(`/api/mapping-rules/${ruleId}`, { method: 'DELETE' })
+      setRules(prev => prev.filter(r => r.id !== ruleId))
+    } catch {
+      alert(copy.common.requestFailed)
+    }
   }
 
   const toggleRule = async (rule: MappingRule) => {
@@ -185,7 +199,11 @@ export default function CategoriasPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isActive: !rule.isActive }),
     })
-    const data = await res.json()
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      alert(data.error ?? copy.common.requestFailed)
+      return
+    }
     setRules(prev => prev.map(r => r.id === rule.id ? data.rule : r))
   }
 
@@ -197,9 +215,13 @@ export default function CategoriasPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ description: testInput }),
     })
-    const data = await res.json()
-    setTestResult(data)
+    const data = await res.json().catch(() => ({}))
     setTesting(false)
+    if (!res.ok) {
+      alert(data.error ?? copy.common.requestFailed)
+      return
+    }
+    setTestResult(data)
   }
 
   const selectedCategory = categories.find(c => c.id === selectedCat)

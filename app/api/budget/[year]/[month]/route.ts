@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/db'
 import { budgetLines, transactions, categories } from '@/db/schema'
-import { eq, and, gte, lt, sql } from 'drizzle-orm'
+import { eq, and, sql } from 'drizzle-orm'
 import { computeMonthSummary } from '@/lib/budget-calculator'
 import { getPublicAppSettings } from '@/lib/app-settings'
 import { v4 as uuidv4 } from 'uuid'
-import type { BudgetLine } from '@/db/schema'
+import { invalidJsonResponse, isValidYearMonth, readJsonBody } from '@/lib/api'
 
 export async function GET(
   _request: NextRequest,
@@ -40,8 +40,7 @@ export async function GET(
   const annualTxs = await db.select().from(transactions).where(
     and(
       eq(transactions.splitAnnual, true),
-      gte(transactions.fechaInicio, windowStart),
-      lt(transactions.fechaInicio, nextMonthDate)
+      sql`COALESCE(budget_date, fecha_inicio) >= ${windowStart} AND COALESCE(budget_date, fecha_inicio) < ${nextMonthDate}`
     )
   )
 
@@ -64,49 +63,35 @@ export async function POST(
   const targetYear  = parseInt(yearStr)
   const targetMonth = parseInt(monthStr)
 
-  const body = await request.json()
+  const body = await readJsonBody(request)
+  if (!body) return invalidJsonResponse()
   const { fromYear, fromMonth } = body
+
+  if (!isValidYearMonth(targetYear, targetMonth) || !isValidYearMonth(fromYear, fromMonth)) {
+    return NextResponse.json({ error: 'Invalid year or month.' }, { status: 400 })
+  }
 
   const sourceLines = await db.select().from(budgetLines).where(
     and(eq(budgetLines.year, fromYear), eq(budgetLines.month, fromMonth))
-  ) as BudgetLine[]
+  )
 
   if (!sourceLines.length) {
     return NextResponse.json({ error: 'No budget exists for the source month.' }, { status: 404 })
   }
 
-  await db.transaction(async (tx) => {
-    for (const line of sourceLines) {
-      const existing = await tx
-        .select({ id: budgetLines.id })
-        .from(budgetLines)
-        .where(and(
-          eq(budgetLines.categoryId, line.categoryId),
-          eq(budgetLines.year, targetYear),
-          eq(budgetLines.month, targetMonth)
-        ))
-        .limit(1)
-
-      if (existing.length > 0) {
-        await tx.update(budgetLines)
-          .set({ amount: line.amount, notes: line.notes })
-          .where(and(
-            eq(budgetLines.categoryId, line.categoryId),
-            eq(budgetLines.year, targetYear),
-            eq(budgetLines.month, targetMonth)
-          ))
-      } else {
-        await tx.insert(budgetLines).values({
-          id: uuidv4(),
-          categoryId: line.categoryId,
-          year: targetYear,
-          month: targetMonth,
-          amount: line.amount,
-          notes: line.notes,
-        })
-      }
-    }
-  })
+  await db.insert(budgetLines)
+    .values(sourceLines.map(line => ({
+      id: uuidv4(),
+      categoryId: line.categoryId,
+      year: targetYear,
+      month: targetMonth,
+      amount: line.amount,
+      notes: line.notes,
+    })))
+    .onConflictDoUpdate({
+      target: [budgetLines.categoryId, budgetLines.year, budgetLines.month],
+      set: { amount: sql`excluded.amount`, notes: sql`excluded.notes` },
+    })
 
   const saved = await db.select().from(budgetLines).where(
     and(eq(budgetLines.year, targetYear), eq(budgetLines.month, targetMonth))

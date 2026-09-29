@@ -25,24 +25,61 @@ export interface ParseResult {
   errors:  Array<{ row: Record<string, string>; error: string }>
 }
 
-// Map Spanish CSV headers → internal field names
-const COLUMN_MAP: Record<string, string> = {
-  'Tipo':                  'tipo',
-  'Producto':              'producto',
-  'Fecha de inicio':       'fechaInicio',
-  'Fecha de finalización': 'fechaFin',
-  'Descripción':           'descripcion',
-  'Importe':               'importe',
-  'Comisión':              'comision',
-  'Divisa':                'divisa',
-  'State':                 'state',
-  'Saldo':                 'saldo',
+// Map Revolut CSV headers (Spanish and English exports) → internal field names.
+// Keys are lowercase; headers are matched case-insensitively.
+const COLUMN_MAP: Record<string, keyof RevolutRow> = {
+  'tipo':                  'tipo',
+  'type':                  'tipo',
+  'producto':              'producto',
+  'product':               'producto',
+  'fecha de inicio':       'fechaInicio',
+  'started date':          'fechaInicio',
+  'fecha de finalización': 'fechaFin',
+  'completed date':        'fechaFin',
+  'descripción':           'descripcion',
+  'description':           'descripcion',
+  'importe':               'importe',
+  'amount':                'importe',
+  'comisión':              'comision',
+  'fee':                   'comision',
+  'divisa':                'divisa',
+  'currency':              'divisa',
+  'state':                 'state',
+  'estado':                'state',
+  'saldo':                 'saldo',
+  'balance':               'saldo',
 }
 
-function parseAmount(value: string): number {
+const REVERTED_STATES = new Set(['REVERTED', 'REVERTIDO'])
+const PENDING_STATES = new Set(['PENDING', 'PENDIENTE'])
+const SAVINGS_PRODUCTS = new Set(['depósito', 'deposito', 'deposit', 'savings'])
+const INTEREST_TYPES = new Set(['intereses', 'interest'])
+
+/**
+ * Parses an amount that may use either `.` or `,` as decimal separator and
+ * either of them as thousands separator ("1.234,56", "1,234.56", "-12,5").
+ * Returns NaN for anything that is not a plain number.
+ */
+export function parseAmount(value: string): number {
   if (!value || value.trim() === '') return 0
-  // Handle both comma and period as decimal separators
-  return parseFloat(value.replace(/\s/g, '').replace(',', '.'))
+  let v = value.replace(/[\s\u00A0']/g, '')
+
+  const lastDot = v.lastIndexOf('.')
+  const lastComma = v.lastIndexOf(',')
+
+  if (lastDot !== -1 && lastComma !== -1) {
+    // Both present: whichever comes last is the decimal separator.
+    const thousands = lastComma > lastDot ? '.' : ','
+    v = v.split(thousands).join('')
+  } else {
+    const sep = lastComma !== -1 ? ',' : lastDot !== -1 ? '.' : null
+    // A separator that appears more than once can only be a thousands separator.
+    if (sep && v.split(sep).length > 2) v = v.split(sep).join('')
+  }
+
+  v = v.replace(',', '.')
+  if (!/^[+-]?(\d+\.?\d*|\.\d+)$/.test(v)) return NaN
+  return Number(v)
 }
 
 export function parseRevolutCSV(csvText: string): ParseResult {
@@ -52,7 +89,7 @@ export function parseRevolutCSV(csvText: string): ParseResult {
   const result = Papa.parse<Record<string, string>>(cleaned, {
     header: true,
     skipEmptyLines: true,
-    transformHeader: (h: string) => COLUMN_MAP[h.trim()] ?? h.trim(),
+    transformHeader: (h: string) => COLUMN_MAP[h.trim().toLowerCase()] ?? h.trim(),
   })
 
   const valid: RevolutRow[] = []
@@ -62,27 +99,29 @@ export function parseRevolutCSV(csvText: string): ParseResult {
   for (const rawRow of result.data) {
     const row = rawRow as Record<string, string>
 
+    const state = (row['state'] ?? '').trim().toUpperCase()
+
     // Skip REVERTED — cancelled transactions
-    if (row['state'] === 'REVERTED') {
+    if (REVERTED_STATES.has(state)) {
       skipped.push({ row, reason: 'Transacción revertida (REVERTED)' })
       continue
     }
 
     // Skip PENDING — not settled, will appear next month
-    if (row['state'] === 'PENDING') {
+    if (PENDING_STATES.has(state)) {
       skipped.push({ row, reason: 'Transacción pendiente (PENDING)' })
       continue
     }
 
     // Skip savings account rows (Producto: Depósito) — interest and internal
     // transfers to/from the Cuenta Remunerada savings pocket are not real spending
-    if (row['producto'] === 'Depósito') {
+    if (SAVINGS_PRODUCTS.has((row['producto'] ?? '').trim().toLowerCase())) {
       skipped.push({ row, reason: 'Cuenta Remunerada (ahorro)' })
       continue
     }
 
     // Skip interest income rows regardless of product
-    if (row['tipo'] === 'Intereses') {
+    if (INTEREST_TYPES.has((row['tipo'] ?? '').trim().toLowerCase())) {
       skipped.push({ row, reason: 'Intereses (no es un gasto)' })
       continue
     }
@@ -99,8 +138,15 @@ export function parseRevolutCSV(csvText: string): ParseResult {
       continue
     }
 
+    const comision = parseAmount(row['comision'] ?? '0')
+    if (isNaN(comision)) {
+      errors.push({ row, error: `Comisión inválida: "${row['comision']}"` })
+      continue
+    }
+
     const saldoRaw = row['saldo']
-    const saldo = saldoRaw && saldoRaw.trim() !== '' ? parseAmount(saldoRaw) : null
+    const saldoParsed = saldoRaw && saldoRaw.trim() !== '' ? parseAmount(saldoRaw) : null
+    const saldo = saldoParsed === null || isNaN(saldoParsed) ? null : saldoParsed
 
     valid.push({
       tipo:        row['tipo']        ?? '',
@@ -109,9 +155,9 @@ export function parseRevolutCSV(csvText: string): ParseResult {
       fechaFin:    row['fechaFin']    ?? '',
       descripcion: (row['descripcion'] ?? '').trim(),
       importe,
-      comision:    parseAmount(row['comision'] ?? '0'),
+      comision,
       divisa:      row['divisa']      ?? 'EUR',
-      state:       row['state']       ?? '',
+      state,
       saldo,
     })
   }
@@ -121,10 +167,27 @@ export function parseRevolutCSV(csvText: string): ParseResult {
 
 /**
  * SHA-256 fingerprint — used for deduplication.
- * Combines fecha_inicio + descripcion + importe + tipo.
- * Revolut CSVs don't have a unique transaction ID field.
+ * Revolut CSVs don't have a unique transaction ID field, so the running
+ * balance (saldo) is included: it tells apart two otherwise identical charges
+ * (same date, description and amount) that are both legitimate.
  */
 export function computeDedupHash(row: RevolutRow): string {
+  const content = [
+    row.fechaInicio,
+    row.descripcion,
+    String(row.importe),
+    row.tipo,
+    row.saldo === null ? '' : String(row.saldo),
+  ].join('|')
+  return createHash('sha256').update(content).digest('hex')
+}
+
+/**
+ * Hash format used before the balance was part of the fingerprint. Rows
+ * imported back then are stored with this hash, so imports check it too to
+ * avoid re-importing them.
+ */
+export function computeLegacyDedupHash(row: RevolutRow): string {
   const content = [
     row.fechaInicio,
     row.descripcion,

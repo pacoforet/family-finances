@@ -2,13 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/db'
 import { categories, transactions, mappingRules, budgetLines } from '@/db/schema'
 import { eq } from 'drizzle-orm'
+import { invalidJsonResponse, readJsonBody } from '@/lib/api'
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
-  const body = await request.json()
+  const body = await readJsonBody(request)
+  if (!body) return invalidJsonResponse()
   const allowed = ['name', 'color', 'icon', 'sortOrder', 'isIncome'] as const
 
   const updates: Record<string, unknown> = {}

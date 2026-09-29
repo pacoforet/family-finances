@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import type { Category } from '@/db/schema'
 import { useUiCopy } from '@/lib/ui-copy'
+import { todayISODate } from '@/lib/format'
 
 interface Props {
   open: boolean
@@ -21,7 +22,7 @@ export function AddTransactionDialog({ open, onOpenChange, categories, onSaved }
   const copy = useUiCopy()
   const [descripcion, setDescripcion] = useState('')
   const [importe, setImporte]         = useState('')
-  const [fecha, setFecha]             = useState(new Date().toISOString().slice(0, 10))
+  const [fecha, setFecha]             = useState(todayISODate)
   const [categoryId, setCategoryId]   = useState('')
   const [notes, setNotes]             = useState('')
   const [saving, setSaving]           = useState(false)
@@ -60,7 +61,7 @@ export function AddTransactionDialog({ open, onOpenChange, categories, onSaved }
       } else {
         setDescripcion('')
         setImporte('')
-        setFecha(new Date().toISOString().slice(0, 10))
+        setFecha(todayISODate())
         setCategoryId('')
         setNotes('')
         onOpenChange(false)

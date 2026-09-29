@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/db'
 import { transactions } from '@/db/schema'
 import { eq } from 'drizzle-orm'
+import { invalidJsonResponse, readJsonBody } from '@/lib/api'
 
 export async function GET(
   _request: NextRequest,
@@ -18,7 +19,8 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
-  const body = await request.json()
+  const body = await readJsonBody(request)
+  if (!body) return invalidJsonResponse()
 
   // Fields the user is allowed to update
   const allowed = [
@@ -34,9 +36,17 @@ export async function PATCH(
     }
   }
 
-  // Mark as manual when category is manually set
-  if ('categoryId' in body && body.categoryId) {
-    updates['categorySource'] = 'manual'
+  if ('importe' in body) {
+    const amount = Number(body.importe)
+    if (body.importe === null || body.importe === '' || !Number.isFinite(amount)) {
+      return NextResponse.json({ error: 'Amount must be a number.' }, { status: 400 })
+    }
+    updates['importe'] = amount
+  }
+
+  // Mark as manual when category is manually set; clearing it clears the source
+  if ('categoryId' in body) {
+    updates['categorySource'] = body.categoryId ? 'manual' : null
   }
 
   const existing = await db.select({ id: transactions.id }).from(transactions).where(eq(transactions.id, id))

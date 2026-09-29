@@ -5,9 +5,13 @@ export async function proxy(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  // Keep app usable in local setup before envs are configured.
+  // Without Supabase there is no way to authenticate anyone, so fail closed.
+  // Only local development may run unauthenticated before envs are configured.
   if (!supabaseUrl || !supabaseAnonKey) {
-    return NextResponse.next()
+    if (process.env.NODE_ENV === 'development') {
+      return NextResponse.next()
+    }
+    return new NextResponse('Authentication is not configured.', { status: 503 })
   }
 
   let response = NextResponse.next({ request })
@@ -38,14 +42,18 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Public routes
-  if (pathname === '/login' || pathname === '/api/health') {
-    if (pathname === '/login' && user) {
+  if (pathname === '/login') {
+    if (user) {
       return NextResponse.redirect(new URL('/', request.url))
     }
     return response
   }
 
   if (!user) {
+    // API clients get a proper status code instead of an HTML redirect.
+    if (pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Unauthorized.' }, { status: 401 })
+    }
     return NextResponse.redirect(new URL('/login', request.url))
   }
 

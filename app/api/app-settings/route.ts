@@ -11,6 +11,7 @@ import {
   STARTER_RULES,
   type StarterPreset,
 } from '@/lib/starter-template'
+import { invalidJsonResponse, readJsonBody } from '@/lib/api'
 
 function normalizeBody(body: Record<string, unknown>) {
   return {
@@ -31,7 +32,9 @@ export async function GET() {
 }
 
 export async function PUT(request: NextRequest) {
-  const body = normalizeBody(await request.json())
+  const rawBody = await readJsonBody(request)
+  if (!rawBody) return invalidJsonResponse()
+  const body = normalizeBody(rawBody)
 
   if (!body.appName || !body.householdName || !body.defaultCurrency || !body.locale || !body.timezone) {
     return NextResponse.json({ error: 'All setup fields are required.' }, { status: 400 })
