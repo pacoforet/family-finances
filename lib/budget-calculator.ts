@@ -10,7 +10,7 @@ export interface BudgetLineResult {
   icon:            string | null
   budgeted:        number
   actual:          number
-  actualRaw:       number   // sum without splitAnnual adjustment (for display)
+  actualRaw:       number   // net sum without splitAnnual adjustment (for display)
   variance:        number   // budgeted - actual, positive = under budget
   pct:             number   // actual / budgeted × 100
   status:          BudgetStatus
@@ -35,6 +35,30 @@ export interface MonthSummary {
   }
 }
 
+/** Month index (year * 12 + month - 1) of the date a transaction counts in. */
+export function effectiveMonthIndex(t: Pick<Transaction, 'budgetDate' | 'fechaInicio'>): number {
+  const date = String(t.budgetDate ?? t.fechaInicio)
+  const y = Number(date.slice(0, 4))
+  const m = Number(date.slice(5, 7))
+  return y * 12 + (m - 1)
+}
+
+/** Budget impact of a transaction: annual expenses are spread over 12 months. */
+function budgetAmount(t: Transaction): number {
+  return t.splitAnnual ? t.importe / 12 : t.importe
+}
+
+/**
+ * Builds the budget-vs-actual summary for one month.
+ *
+ * `allTransactions` may contain transactions from other months: only those
+ * whose effective month (budget_date, else fecha_inicio) is this month count,
+ * plus annual (splitAnnual) transactions from the previous 11 months, which
+ * contribute 1/12 of their amount.
+ *
+ * Spending is net per category: a refund (positive amount) in an expense
+ * category reduces that category's spending instead of counting as income.
+ */
 export function computeMonthSummary(
   year: number,
   month: number,
@@ -43,34 +67,43 @@ export function computeMonthSummary(
   categories: Category[],
   householdSize = 1,
 ): MonthSummary {
-  // Income categories are never counted as expenses
+  const monthIndex = year * 12 + (month - 1)
   const incomeCatIds = new Set(categories.filter(c => c.isIncome).map(c => c.id))
 
-  // Expenses: negative importe, completed, not excluded, not an income category
-  const expenses = allTransactions.filter(
-    t => t.importe < 0 && isCompletedState(t.state) && !t.excludeFromBudget && !incomeCatIds.has(t.categoryId ?? '')
+  const counts = (t: Transaction) => isCompletedState(t.state) && !t.excludeFromBudget
+  const inMonth = (t: Transaction) => effectiveMonthIndex(t) === monthIndex
+  const inBudgetWindow = (t: Transaction) => {
+    if (!t.splitAnnual) return inMonth(t)
+    const idx = effectiveMonthIndex(t)
+    return idx <= monthIndex && idx > monthIndex - 12
+  }
+
+  const isExpenseCategory = (t: Transaction) => !!t.categoryId && !incomeCatIds.has(t.categoryId)
+
+  // Spending: charges not in an income category, plus refunds in expense categories.
+  const spending = allTransactions.filter(t =>
+    counts(t) && inBudgetWindow(t) && !incomeCatIds.has(t.categoryId ?? '') &&
+    (t.importe < 0 || (t.importe > 0 && isExpenseCategory(t)))
   )
 
-  // Income: positive importe (also include transactions in income categories)
-  const income = allTransactions.filter(t => t.importe > 0 || incomeCatIds.has(t.categoryId ?? ''))
+  // Income: this month's income-category transactions and uncategorized credits.
+  const income = allTransactions.filter(t =>
+    counts(t) && inMonth(t) &&
+    (incomeCatIds.has(t.categoryId ?? '') || (t.importe > 0 && !t.categoryId))
+  )
 
   const catMap = new Map(categories.map(c => [c.id, c]))
-
-  // Only include budget lines for expense categories (not income)
-  const expenseBudgetLines = budgetLines.filter(bl => !incomeCatIds.has(bl.categoryId))
+  const expenseBudgetLines = budgetLines.filter(bl =>
+    bl.year === year && bl.month === month && !incomeCatIds.has(bl.categoryId)
+  )
 
   const lines: BudgetLineResult[] = expenseBudgetLines.map(bl => {
     const cat = catMap.get(bl.categoryId)
-    const catTransactions = expenses.filter(t => t.categoryId === bl.categoryId)
+    const catTransactions = spending.filter(t => t.categoryId === bl.categoryId)
 
-    // For budget purposes: split annual expenses across 12 months (÷12)
-    const actual = catTransactions.reduce((sum, t) => {
-      const amount = Math.abs(t.importe)
-      return sum + (t.splitAnnual ? amount / 12 : amount)
-    }, 0)
-
-    // Raw actual (full amounts, for informational display)
-    const actualRaw = catTransactions.reduce((sum, t) => sum + Math.abs(t.importe), 0)
+    // Spending is the negated net amount: charges are negative, refunds positive.
+    const actual = -catTransactions.reduce((sum, t) => sum + budgetAmount(t), 0)
+    const actualRaw = -catTransactions.reduce((sum, t) => sum + t.importe, 0)
 
     const pct = bl.amount > 0 ? (actual / bl.amount) * 100 : 0
     const status: BudgetStatus = pct > 100 ? 'over' : pct > 85 ? 'warning' : 'ok'
@@ -93,13 +126,10 @@ export function computeMonthSummary(
   // Sort lines by actual spending descending (highest first)
   lines.sort((a, b) => b.actual - a.actual)
 
-  const uncategorized = expenses.filter(t => !t.categoryId)
+  const uncategorized = spending.filter(t => !t.categoryId && inMonth(t))
 
   const totalBudgeted = lines.reduce((s, l) => s + l.budgeted, 0)
-  const totalActual = expenses.reduce((sum, t) => {
-    const amount = Math.abs(t.importe)
-    return sum + (t.splitAnnual ? amount / 12 : amount)
-  }, 0)
+  const totalActual = -spending.reduce((sum, t) => sum + budgetAmount(t), 0)
   const totalPct = totalBudgeted > 0 ? (totalActual / totalBudgeted) * 100 : 0
 
   return {
@@ -121,5 +151,6 @@ export function computeMonthSummary(
   }
 }
 
-function round2(n: number) { return Math.round(n * 100) / 100 }
-function round1(n: number) { return Math.round(n * 10) / 10 }
+// `|| 0` turns -0 (from negating an empty sum) into 0
+function round2(n: number) { return Math.round(n * 100) / 100 || 0 }
+function round1(n: number) { return Math.round(n * 10) / 10 || 0 }

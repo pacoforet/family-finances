@@ -2,20 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/db'
 import { mappingRules } from '@/db/schema'
 import { findMatchingRule } from '@/lib/category-mapper'
-import type { MappingRule } from '@/db/schema'
-import { invalidJsonResponse, readJsonBody } from '@/lib/api'
+import { parseJsonBody, withApiErrors } from '@/lib/api'
+import { mappingRuleTestSchema } from '@/lib/validation'
 
-export async function POST(request: NextRequest) {
-  const body = await readJsonBody(request)
-  if (!body) return invalidJsonResponse()
-  const { description } = body
+export const POST = withApiErrors(async (request: NextRequest) => {
+  const { description } = await parseJsonBody(request, mappingRuleTestSchema)
 
-  if (!description) {
-    return NextResponse.json({ error: 'Description is required.' }, { status: 400 })
-  }
-
-  const rules = await db.select().from(mappingRules) as MappingRule[]
-  const matched = findMatchingRule(description, rules)
+  const matched = findMatchingRule(description, await db.select().from(mappingRules))
 
   if (!matched) {
     return NextResponse.json({ matched: false })
@@ -30,4 +23,4 @@ export async function POST(request: NextRequest) {
     rule: matched,
     category: cat,
   })
-}
+})

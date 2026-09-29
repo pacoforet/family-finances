@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/db'
 import { transactions } from '@/db/schema'
 import { eq, and, isNull } from 'drizzle-orm'
-import { invalidJsonResponse, readJsonBody } from '@/lib/api'
+import { parseJsonBody, withApiErrors } from '@/lib/api'
+import { bulkCategorizeSchema } from '@/lib/validation'
 
 /**
  * POST /api/transactions/bulk-categorize
@@ -10,31 +11,18 @@ import { invalidJsonResponse, readJsonBody } from '@/lib/api'
  * Body: { description: string, categoryId: string }
  * Returns: { updated: number }
  */
-export async function POST(request: NextRequest) {
-  const body = await readJsonBody(request)
-  if (!body) return invalidJsonResponse()
-  const { description, categoryId } = body
-
-  if (!description || !categoryId) {
-    return NextResponse.json({ error: 'Description and category are required.' }, { status: 400 })
-  }
-
-  const now = new Date().toISOString()
+export const POST = withApiErrors(async (request: NextRequest) => {
+  const { description, categoryId } = await parseJsonBody(request, bulkCategorizeSchema)
 
   const result = await db
     .update(transactions)
     .set({
       categoryId,
       categorySource: 'manual',
-      updatedAt: now,
+      updatedAt: new Date().toISOString(),
     })
-    .where(
-      and(
-        eq(transactions.descripcion, description),
-        isNull(transactions.categoryId)
-      )
-    )
+    .where(and(eq(transactions.descripcion, description), isNull(transactions.categoryId)))
     .returning({ id: transactions.id })
 
   return NextResponse.json({ updated: result.length })
-}
+})

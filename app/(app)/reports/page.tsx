@@ -72,15 +72,13 @@ export default function InformesPage() {
 
   useEffect(() => {
     if (view !== 'anual') return
-    Promise.all(
-      Array.from({ length: 12 }, (_, i) =>
-        fetchJson(`/api/budget/${year}/${i + 1}`)
-      )
-    ).then(results => {
-      setYearData(results.map((d, i) => ({
-        month: monthLabel(year, i + 1),
-        total: d.summary?.totals.actual ?? 0,
-        presupuesto: d.summary?.totals.budgeted ?? 0,
+    fetchJson<{ months: Array<{ month: number; budgeted: number; actual: number }> }>(
+      `/api/reports/year?year=${year}`
+    ).then(({ months }) => {
+      setYearData(months.map(m => ({
+        month: monthLabel(year, m.month),
+        total: m.actual,
+        presupuesto: m.budgeted,
       })))
       setLoading(false)
     }).catch(() => { setLoading(false); alert(copy.common.loadFailed) })

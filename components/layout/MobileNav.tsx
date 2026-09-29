@@ -1,10 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
-import { Menu, LayoutDashboard, Upload, List, PiggyBank, Tag, BarChart3, LogOut } from 'lucide-react'
+import { usePathname } from 'next/navigation'
+import { Menu, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { createClient } from '@/lib/supabase/client'
+import { useNavItems, useSignOut } from './nav'
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet'
 import { ThemeToggle } from './ThemeToggle'
 import { useAppSettings } from '@/components/providers/AppSettingsProvider'
@@ -12,27 +12,12 @@ import { useUiCopy } from '@/lib/ui-copy'
 
 export function MobileNav() {
   const pathname = usePathname()
-  const router = useRouter()
-  const supabase = createClient()
   const settings = useAppSettings()
   const copy = useUiCopy()
 
-  if (pathname === '/login' || pathname === '/setup') return null
+  const navItems = useNavItems()
 
-  const navItems = [
-    { href: '/dashboard', label: copy.nav.dashboard, icon: LayoutDashboard },
-    { href: '/transacciones', label: copy.nav.transactions, icon: List },
-    { href: '/presupuesto', label: copy.nav.budget, icon: PiggyBank },
-    { href: '/categorias', label: copy.nav.categories, icon: Tag },
-    { href: '/informes', label: copy.nav.reports, icon: BarChart3 },
-    { href: '/importar', label: copy.nav.import, icon: Upload },
-  ]
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
-    router.refresh()
-  }
+  const handleLogout = useSignOut()
 
   return (
     <Sheet>

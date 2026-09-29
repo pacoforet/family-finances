@@ -167,7 +167,7 @@ export default function DashboardPage() {
           <CardContent className="flex flex-col items-center justify-center py-14 gap-3">
             <p className="text-muted-foreground text-sm">{copy.dashboard.noBudget}</p>
             <Button asChild size="sm" variant="outline">
-              <Link href="/presupuesto">{copy.dashboard.setupBudget}</Link>
+              <Link href="/budget">{copy.dashboard.setupBudget}</Link>
             </Button>
           </CardContent>
         </Card>
@@ -331,7 +331,7 @@ export default function DashboardPage() {
                       </span>
                     </div>
                     <Link
-                      href={`/transacciones?month=${toMonthKey(year, month)}&uncategorized=true`}
+                      href={`/transactions?month=${toMonthKey(year, month)}&uncategorized=true`}
                       className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
                     >
                       {copy.dashboard.review} <ArrowRight className="h-3 w-3" />
@@ -347,7 +347,7 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base">{copy.dashboard.recentTransactions}</CardTitle>
                   <Link
-                    href={`/transacciones?month=${toMonthKey(year, month)}`}
+                    href={`/transactions?month=${toMonthKey(year, month)}`}
                     className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
                   >
                     {copy.dashboard.viewAll} <ArrowRight className="h-3 w-3" />

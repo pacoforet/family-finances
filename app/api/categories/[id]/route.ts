@@ -2,37 +2,22 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/db'
 import { categories, transactions, mappingRules, budgetLines } from '@/db/schema'
 import { eq } from 'drizzle-orm'
-import { invalidJsonResponse, readJsonBody } from '@/lib/api'
+import { parseJsonBody, withApiErrors } from '@/lib/api'
+import { categoryUpdateSchema } from '@/lib/validation'
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+type Params = { params: Promise<{ id: string }> }
+
+export const PATCH = withApiErrors(async (request: NextRequest, { params }: Params) => {
   const { id } = await params
-  const body = await readJsonBody(request)
-  if (!body) return invalidJsonResponse()
-  const allowed = ['name', 'color', 'icon', 'sortOrder', 'isIncome'] as const
+  const updates = await parseJsonBody(request, categoryUpdateSchema)
 
-  const updates: Record<string, unknown> = {}
-  for (const field of allowed) {
-    if (field in body) updates[field] = body[field]
-  }
-
-  if (!Object.keys(updates).length) {
-    return NextResponse.json({ error: 'No updatable fields were provided.' }, { status: 400 })
-  }
-
-  await db.update(categories).set(updates).where(eq(categories.id, id))
-  const updated = await db.select().from(categories).where(eq(categories.id, id))
+  const updated = await db.update(categories).set(updates).where(eq(categories.id, id)).returning()
 
   if (!updated.length) return NextResponse.json({ error: 'Category not found.' }, { status: 404 })
   return NextResponse.json({ category: updated[0] })
-}
+})
 
-export async function DELETE(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const DELETE = withApiErrors(async (_request: NextRequest, { params }: Params) => {
   const { id } = await params
   const existing = await db.select({ id: categories.id }).from(categories).where(eq(categories.id, id))
   if (!existing.length) {
@@ -51,4 +36,4 @@ export async function DELETE(
   })
 
   return NextResponse.json({ success: true })
-}
+})

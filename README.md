@@ -60,7 +60,7 @@ cp .env.example .env.local
 npm run db:setup
 ```
 
-This runs `db:generate`, `db:migrate`, and `db:seed` in sequence. You can also run each step individually if needed.
+This runs `db:migrate` and `db:seed`. Migrations are committed in `db/migrations`; run `npm run db:generate` only after changing `db/schema.ts`, and commit the generated migration.
 
 5. Create your first user in Supabase Auth.
 
@@ -101,6 +101,8 @@ Common commands:
 ```bash
 npm run dev
 npm run lint
+npm run typecheck
+npm test
 npm run build
 npm run db:migrate
 npm run db:seed

@@ -3,39 +3,21 @@ import { db } from '@/db'
 import { budgetLines } from '@/db/schema'
 import { eq, and, sql } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
-import { invalidJsonResponse, isValidYearMonth, readJsonBody } from '@/lib/api'
+import { parseJsonBody, parseSearchParams, withApiErrors } from '@/lib/api'
+import { budgetQuerySchema, budgetSaveSchema } from '@/lib/validation'
 
-export async function GET(request: NextRequest) {
-  const { searchParams } = request.nextUrl
-  const year = searchParams.get('year')
+export const GET = withApiErrors(async (request: NextRequest) => {
+  const { year } = parseSearchParams(request, budgetQuerySchema)
 
-  const rows = year
-    ? await db.select().from(budgetLines).where(eq(budgetLines.year, parseInt(year)))
+  const rows = year !== undefined
+    ? await db.select().from(budgetLines).where(eq(budgetLines.year, year))
     : await db.select().from(budgetLines)
 
   return NextResponse.json({ budgetLines: rows })
-}
+})
 
-export async function POST(request: NextRequest) {
-  const body = await readJsonBody(request)
-  if (!body) return invalidJsonResponse()
-
-  const { year, month, lines } = body as {
-    year: number
-    month: number
-    lines: Array<{ categoryId: string; amount: number; notes?: string }>
-  }
-
-  if (!isValidYearMonth(year, month) || !Array.isArray(lines)) {
-    return NextResponse.json({ error: 'Invalid budget payload.' }, { status: 400 })
-  }
-
-  const invalidLine = lines.some(line =>
-    !line || typeof line.categoryId !== 'string' || !line.categoryId || !Number.isFinite(line.amount)
-  )
-  if (invalidLine) {
-    return NextResponse.json({ error: 'Each budget line needs a category and a numeric amount.' }, { status: 400 })
-  }
+export const POST = withApiErrors(async (request: NextRequest) => {
+  const { year, month, lines } = await parseJsonBody(request, budgetSaveSchema)
 
   // ON CONFLICT cannot touch the same row twice in one statement: last line wins.
   const uniqueLines = [...new Map(lines.map(line => [line.categoryId, line])).values()]
@@ -48,7 +30,7 @@ export async function POST(request: NextRequest) {
         year,
         month,
         amount: line.amount,
-        notes: line.notes ?? null,
+        notes: line.notes,
       })))
       .onConflictDoUpdate({
         target: [budgetLines.categoryId, budgetLines.year, budgetLines.month],
@@ -61,4 +43,4 @@ export async function POST(request: NextRequest) {
   )
 
   return NextResponse.json({ budgetLines: saved })
-}
+})

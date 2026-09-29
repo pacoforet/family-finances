@@ -3,13 +3,13 @@ import { db } from '@/db'
 import { mappingRules, transactions } from '@/db/schema'
 import { eq, asc, isNull, ne, or, inArray, and } from 'drizzle-orm'
 import { v4 as uuidv4 } from 'uuid'
-import { applyMappingRules } from '@/lib/category-mapper'
+import { createRuleMatcher, normalizeMatchValue } from '@/lib/category-mapper'
 import type { MappingRule } from '@/db/schema'
-import { invalidJsonResponse, readJsonBody } from '@/lib/api'
+import { parseJsonBody, parseSearchParams, withApiErrors } from '@/lib/api'
+import { mappingRuleCreateSchema, mappingRulesQuerySchema } from '@/lib/validation'
 
-export async function GET(request: NextRequest) {
-  const { searchParams } = request.nextUrl
-  const categoryId = searchParams.get('categoryId')
+export const GET = withApiErrors(async (request: NextRequest) => {
+  const { categoryId } = parseSearchParams(request, mappingRulesQuerySchema)
 
   const rows = categoryId
     ? await db.select().from(mappingRules)
@@ -18,30 +18,19 @@ export async function GET(request: NextRequest) {
     : await db.select().from(mappingRules).orderBy(asc(mappingRules.priority))
 
   return NextResponse.json({ rules: rows })
-}
+})
 
-export async function POST(request: NextRequest) {
-  const body = await readJsonBody(request)
-  if (!body) return invalidJsonResponse()
-  const { categoryId, matchType, matchValue, priority, notes } = body
-
-  if (!categoryId || !matchType || !matchValue) {
-    return NextResponse.json({ error: 'Category, match type, and match value are required.' }, { status: 400 })
-  }
-
-  const validMatchTypes = ['contains', 'exact', 'starts_with', 'regex']
-  if (!validMatchTypes.includes(matchType)) {
-    return NextResponse.json({ error: 'Invalid rule match type.' }, { status: 400 })
-  }
-
+export const POST = withApiErrors(async (request: NextRequest) => {
+  const body = await parseJsonBody(request, mappingRuleCreateSchema)
+  const { categoryId, matchType, priority, notes } = body
+  const matchValue = normalizeMatchValue(matchType, body.matchValue)
   const now = new Date().toISOString()
-  const matchValueLower = matchValue.toLowerCase()
 
-  // Upsert: if an exact-typed rule with the same matchValue already exists, update it
+  // Upsert: a rule with the same type and value is reassigned instead of duplicated
   const [existing] = await db
     .select()
     .from(mappingRules)
-    .where(and(eq(mappingRules.matchType, matchType), eq(mappingRules.matchValue, matchValueLower)))
+    .where(and(eq(mappingRules.matchType, matchType), eq(mappingRules.matchValue, matchValue)))
     .limit(1)
 
   let rule: MappingRule
@@ -57,24 +46,24 @@ export async function POST(request: NextRequest) {
       id:         uuidv4(),
       categoryId,
       matchType,
-      matchValue: matchValueLower,
-      priority:   priority ?? 100,
+      matchValue,
+      priority,
       isActive:   true,
-      notes:      notes ?? null,
+      notes,
       createdAt:  now,
     }).returning()
     rule = inserted
   }
 
-  // Re-categorize previously uncategorized transactions that match this new rule
-  const allRules = await db.select().from(mappingRules) as MappingRule[]
-  const uncategorized = await db
-    .select({ id: transactions.id, descripcion: transactions.descripcion })
+  // Re-categorize transactions not categorized by hand that now resolve to this category
+  const match = createRuleMatcher(await db.select().from(mappingRules))
+  const candidates = await db
+    .select({ id: transactions.id, descripcion: transactions.descripcion, categoryId: transactions.categoryId })
     .from(transactions)
     .where(or(ne(transactions.categorySource, 'manual'), isNull(transactions.categoryId)))
 
-  const toUpdate = uncategorized.filter(tx =>
-    applyMappingRules(tx.descripcion, allRules) === categoryId
+  const toUpdate = candidates.filter(tx =>
+    tx.categoryId !== categoryId && match(tx.descripcion)?.categoryId === categoryId
   )
 
   if (toUpdate.length > 0) {
@@ -88,4 +77,4 @@ export async function POST(request: NextRequest) {
     recategorized: toUpdate.length,
     wasUpdated: !!existing,
   }, { status: 201 })
-}
+})

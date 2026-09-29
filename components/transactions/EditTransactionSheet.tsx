@@ -97,7 +97,7 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
           excludeFromBudget: exclude,
           splitAnnual,
           budgetDate: budgetDateActive
-            ? `${budgetYear}-${String(budgetMonth).padStart(2, '0')}-01 00:00:00`
+            ? `${budgetYear}-${String(budgetMonth).padStart(2, '0')}-01`
             : null,
         }),
       })

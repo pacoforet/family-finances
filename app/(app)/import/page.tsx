@@ -120,7 +120,7 @@ export default function ImportarPage() {
             <div className="flex gap-3">
               <Button onClick={reset} variant="outline">{copy.import.importAnother}</Button>
               <Button asChild>
-                <a href="/transacciones">{copy.import.viewTransactions}</a>
+                <a href="/transactions">{copy.import.viewTransactions}</a>
               </Button>
             </div>
           </CardContent>

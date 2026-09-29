@@ -9,40 +9,17 @@ import {
   isBudgetTemplateCategory,
   STARTER_CATEGORIES,
   STARTER_RULES,
-  type StarterPreset,
 } from '@/lib/starter-template'
-import { invalidJsonResponse, readJsonBody } from '@/lib/api'
-
-function normalizeBody(body: Record<string, unknown>) {
-  return {
-    appName: String(body.appName ?? '').trim(),
-    householdName: String(body.householdName ?? '').trim(),
-    defaultCurrency: String(body.defaultCurrency ?? '').trim().toUpperCase(),
-    locale: String(body.locale ?? '').trim(),
-    timezone: String(body.timezone ?? '').trim(),
-    householdSize: Number(body.householdSize ?? 1),
-    starterPreset: String(body.starterPreset ?? 'blank') as StarterPreset,
-    createStarterBudget: Boolean(body.createStarterBudget),
-  }
-}
+import { parseJsonBody, withApiErrors } from '@/lib/api'
+import { appSettingsSchema } from '@/lib/validation'
 
 export async function GET() {
   const settings = await getPublicAppSettings()
   return NextResponse.json({ settings })
 }
 
-export async function PUT(request: NextRequest) {
-  const rawBody = await readJsonBody(request)
-  if (!rawBody) return invalidJsonResponse()
-  const body = normalizeBody(rawBody)
-
-  if (!body.appName || !body.householdName || !body.defaultCurrency || !body.locale || !body.timezone) {
-    return NextResponse.json({ error: 'All setup fields are required.' }, { status: 400 })
-  }
-
-  if (!Number.isFinite(body.householdSize) || body.householdSize < 1) {
-    return NextResponse.json({ error: 'Household size must be at least 1.' }, { status: 400 })
-  }
+export const PUT = withApiErrors(async (request: NextRequest) => {
+  const body = await parseJsonBody(request, appSettingsSchema)
 
   const now = new Date().toISOString()
   const existingSettings = await db.select().from(appSettings).limit(1)
@@ -53,7 +30,7 @@ export async function PUT(request: NextRequest) {
     defaultCurrency: body.defaultCurrency,
     locale: body.locale,
     timezone: body.timezone,
-    householdSize: Math.trunc(body.householdSize),
+    householdSize: body.householdSize,
     setupCompleted: true,
     createdAt: existingSettings[0]?.createdAt ?? now,
     updatedAt: now,
@@ -111,4 +88,4 @@ export async function PUT(request: NextRequest) {
 
   const settings = await getPublicAppSettings()
   return NextResponse.json({ settings })
-}
+})
