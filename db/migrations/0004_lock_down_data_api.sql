@@ -6,6 +6,8 @@
 -- Lock the tables down completely for the API roles: RLS on every table, no
 -- permissive policies, and no table privileges for anon/authenticated.
 ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
+-- Some databases got an equivalent permissive policy on app_settings out of band.
+DROP POLICY IF EXISTS app_settings_authenticated_all ON public.app_settings;--> statement-breakpoint
 DROP POLICY IF EXISTS categories_authenticated_all ON public.categories;--> statement-breakpoint
 DROP POLICY IF EXISTS budget_lines_authenticated_all ON public.budget_lines;--> statement-breakpoint
 DROP POLICY IF EXISTS mapping_rules_authenticated_all ON public.mapping_rules;--> statement-breakpoint
