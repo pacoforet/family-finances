@@ -16,7 +16,7 @@ import { useUiCopy } from '@/lib/ui-copy'
 import { fetchJson } from '@/lib/fetch-json'
 import { useInitialMonth, type InitialMonth } from '@/components/kit/use-initial-month'
 
-type YearRow = { month: string; spent: number; budgeted: number }
+type YearRow = { month: string; monthNumber: number; spent: number; budgeted: number }
 
 function TooltipShell({ children }: { children: React.ReactNode }) {
   return <div className="min-w-36 rounded-xl border bg-popover px-3 py-2.5 text-sm text-popover-foreground shadow-lg">{children}</div>
@@ -97,6 +97,7 @@ function Reports({ initial }: { initial: InitialMonth }) {
     fetchJson<{ months: Array<{ month: number; budgeted: number; actual: number }> }>(`/api/reports/year?year=${year}`)
       .then(({ months }) => setYearData(months.map(m => ({
         month: monthLabel(year, m.month),
+        monthNumber: m.month,
         spent: m.actual,
         budgeted: m.budgeted,
       }))))
@@ -121,9 +122,16 @@ function Reports({ initial }: { initial: InitialMonth }) {
     .filter(l => l.budgeted > 0 || l.actual > 0)
     .sort((a, b) => b.actual - a.actual) ?? []
 
-  const monthsWithData = yearData.filter(d => d.spent > 0)
-  const yearTotal = yearData.reduce((s, d) => s + d.spent, 0)
-  const yearAvg = monthsWithData.length > 0 ? yearTotal / monthsWithData.length : 0
+  // Months still to come only carry annual expenses spread forward: leave them
+  // out of the totals and the average.
+  const elapsed = yearData.filter(d =>
+    year < now.getFullYear() || (year === now.getFullYear() && d.monthNumber <= now.getMonth() + 1))
+  const monthsWithData = elapsed.filter(d => d.spent > 0)
+  const yearTotal = elapsed.reduce((s, d) => s + d.spent, 0)
+  // The month in progress would drag the average down: average closed months
+  const closed = monthsWithData.filter(d => !(year === now.getFullYear() && d.monthNumber === now.getMonth() + 1))
+  const avgBase = closed.length > 0 ? closed : monthsWithData
+  const yearAvg = avgBase.length > 0 ? avgBase.reduce((sum, d) => sum + d.spent, 0) / avgBase.length : 0
   const monthsOver = monthsWithData.filter(d => d.budgeted > 0 && d.spent > d.budgeted).length
   const statusLabels = { ok: t.onTrack, warning: t.watch, over: t.over }
 
@@ -253,7 +261,7 @@ function Reports({ initial }: { initial: InitialMonth }) {
             <Kpi delay={100} label={t.totalSpent} value={<Money amount={yearTotal} />}
               hint={fill(t.monthsOver, { count: monthsOver, total: monthsWithData.length })} />
             <Kpi delay={140} label={t.monthlyAverage} value={<Money amount={yearAvg} />}
-              hint={`${monthsWithData.length} ${t.monthsWithData}`} />
+              hint={`${avgBase.length} ${t.monthsWithData}`} />
             <Kpi delay={180} label={t.perPersonYear} value={<Money amount={yearTotal / Math.max(settings.householdSize, 1)} />} hint={String(year)} />
           </div>
 

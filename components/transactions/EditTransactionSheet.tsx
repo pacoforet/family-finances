@@ -165,7 +165,11 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
 
   return (
     <Sheet open onOpenChange={open => { if (!open) onClose() }}>
-      <SheetContent className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-sm">
+      <SheetContent
+        className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-sm"
+        // Focusing the first category on open made "No category" look selected
+        onOpenAutoFocus={e => e.preventDefault()}
+      >
 
         {/* Accessible title for screen readers */}
         <SheetTitle className="sr-only">{copy.editTx.title}</SheetTitle>
