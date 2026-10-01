@@ -13,7 +13,8 @@ import {
   MerchantAvatar, Meter, Money, MonthSwitcher, PageHeader, PaceChart, StatusPill, fill, monthTitle,
 } from '@/components/kit'
 import { useAppSettings } from '@/components/providers/AppSettingsProvider'
-import { formatCurrency, formatDayMonth, fromMonthKey, toMonthKey } from '@/lib/format'
+import { formatCurrency, formatDayMonth, toMonthKey } from '@/lib/format'
+import { useInitialMonth, type InitialMonth } from '@/components/kit/use-initial-month'
 import { useUiCopy } from '@/lib/ui-copy'
 import { fetchJson } from '@/lib/fetch-json'
 import type { MonthSummary } from '@/lib/budget-calculator'
@@ -28,11 +29,22 @@ export default function DashboardPage() {
 }
 
 function Dashboard() {
+  const initial = useInitialMonth(useSearchParams().get('month'))
+  if (!initial) {
+    return (
+      <div className="mx-auto w-full max-w-6xl space-y-8 px-4 py-8 md:px-8 md:py-10">
+        <div className="h-[86px]" />
+        <DashboardSkeleton />
+      </div>
+    )
+  }
+  return <DashboardContent initial={initial} />
+}
+
+function DashboardContent({ initial }: { initial: InitialMonth }) {
   const settings = useAppSettings()
   const copy = useUiCopy()
   const now = new Date()
-  const monthParam = useSearchParams().get('month')
-  const initial = monthParam ? fromMonthKey(monthParam) : { year: now.getFullYear(), month: now.getMonth() + 1 }
   const [year, setYear] = useState(initial.year)
   const [month, setMonth] = useState(initial.month)
   const [summary, setSummary] = useState<MonthSummary | null>(null)
@@ -90,6 +102,12 @@ function Dashboard() {
       <PageHeader
         eyebrow={settings.householdName}
         title={copy.dashboard.title}
+        subtitle={initial.fellBack && year === initial.year && month === initial.month
+          ? fill(copy.dashboard.fellBack, {
+              current: monthTitle(now.getFullYear(), now.getMonth() + 1),
+              shown: monthTitle(year, month).toLowerCase(),
+            })
+          : undefined}
         actions={
           <>
             <MonthSwitcher

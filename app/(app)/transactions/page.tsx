@@ -11,7 +11,8 @@ import { EditTransactionSheet } from '@/components/transactions/EditTransactionS
 import { SuggestionsInbox, notifySuggestionsChanged } from '@/components/transactions/SuggestionsInbox'
 import { useSuggestionCount } from '@/components/layout/nav'
 import { MerchantAvatar, Money, MonthSwitcher, PageHeader, fill } from '@/components/kit'
-import { formatCurrency, formatLongDay, fromMonthKey, toMonthKey } from '@/lib/format'
+import { formatCurrency, formatLongDay, toMonthKey } from '@/lib/format'
+import { useInitialMonth, type InitialMonth } from '@/components/kit/use-initial-month'
 import { cn } from '@/lib/utils'
 import { useUiCopy } from '@/lib/ui-copy'
 import { fetchJson } from '@/lib/fetch-json'
@@ -43,12 +44,15 @@ export default function TransaccionesPage() {
 }
 
 function TransaccionesContent() {
+  const initial = useInitialMonth(useSearchParams().get('month'))
+  if (!initial) return <div className="p-8 text-sm text-muted-foreground">…</div>
+  return <TransactionsView initialMonth={initial} />
+}
+
+function TransactionsView({ initialMonth }: { initialMonth: InitialMonth }) {
   const copy = useUiCopy()
   const now = new Date()
   const searchParams = useSearchParams()
-  const initialMonth = searchParams.get('month')
-    ? fromMonthKey(searchParams.get('month')!)
-    : { year: now.getFullYear(), month: now.getMonth() + 1 }
   const [tab, setTab] = useState<'list' | 'review'>(searchParams.get('review') ? 'review' : 'list')
   const [year, setYear] = useState(initialMonth.year)
   const [month, setMonth] = useState(initialMonth.month)

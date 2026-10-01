@@ -14,6 +14,7 @@ import type { MonthSummary } from '@/lib/budget-calculator'
 import { useAppSettings } from '@/components/providers/AppSettingsProvider'
 import { useUiCopy } from '@/lib/ui-copy'
 import { fetchJson } from '@/lib/fetch-json'
+import { useInitialMonth, type InitialMonth } from '@/components/kit/use-initial-month'
 
 type YearRow = { month: string; spent: number; budgeted: number }
 
@@ -66,12 +67,18 @@ function BarTooltip({ active, payload, label, labels }: {
 }
 
 export default function InformesPage() {
+  const initial = useInitialMonth(null)
+  if (!initial) return <div className="p-8 text-sm text-muted-foreground">…</div>
+  return <Reports initial={initial} />
+}
+
+function Reports({ initial }: { initial: InitialMonth }) {
   const settings = useAppSettings()
   const copy = useUiCopy()
   const t = copy.reports
   const now = new Date()
-  const [year, setYear] = useState(now.getFullYear())
-  const [month, setMonth] = useState(now.getMonth() + 1)
+  const [year, setYear] = useState(initial.year)
+  const [month, setMonth] = useState(initial.month)
   const [view, setView] = useState<'monthly' | 'yearly'>('monthly')
   const [summary, setSummary] = useState<MonthSummary | null>(null)
   const [yearData, setYearData] = useState<YearRow[]>([])
