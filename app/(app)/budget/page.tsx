@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { ChevronLeft, ChevronRight, Copy, Save, CalendarRange, Check } from 'lucide-react'
+import { Copy, Save, CalendarRange, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useAppSettings } from '@/components/providers/AppSettingsProvider'
 import { useUiCopy } from '@/lib/ui-copy'
 import { fetchJson } from '@/lib/fetch-json'
+import { MonthSwitcher, PageHeader } from '@/components/kit'
 
 interface BudgetLineRow {
   id: string
@@ -91,15 +92,11 @@ export default function PresupuestoPage() {
     })
   }, [categories])
 
-  const prevMonth = () => {
+  const shiftMonth = (delta: number) => {
+    const index = year * 12 + (month - 1) + delta
     setLoading(true)
-    if (month === 1) { setYear(y => y - 1); setMonth(12) }
-    else setMonth(m => m - 1)
-  }
-  const nextMonth = () => {
-    setLoading(true)
-    if (month === 12) { setYear(y => y + 1); setMonth(1) }
-    else setMonth(m => m + 1)
+    setYear(Math.floor(index / 12))
+    setMonth((index % 12) + 1)
   }
 
   const handleSave = async () => {
@@ -192,25 +189,12 @@ export default function PresupuestoPage() {
   )
 
   return (
-    <div className="px-4 py-6 md:px-6 space-y-6 max-w-2xl">
-
-      {/* ── Header ───────────────────────────────────────────────── */}
-      <div>
-        <h1 className="text-2xl font-semibold">{copy.budget.title}</h1>
-        <p className="text-sm text-muted-foreground">{copy.budget.subtitle}</p>
-      </div>
+    <div className="mx-auto w-full max-w-3xl space-y-7 px-4 py-8 md:px-8 md:py-10">
+      <PageHeader eyebrow={settings.householdName} title={copy.budget.title} subtitle={copy.budget.subtitle} />
 
       {/* ── Month navigator + actions ────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2">
-        <Button variant="outline" size="icon" onClick={prevMonth}>
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <span className="text-lg font-medium w-32 text-center capitalize">
-          {formatMonthYear(year, month)}
-        </span>
-        <Button variant="outline" size="icon" onClick={nextMonth}>
-          <ChevronRight className="h-4 w-4" />
-        </Button>
+      <div className="animate-rise flex flex-wrap items-center gap-2" style={{ animationDelay: '60ms' }}>
+        <MonthSwitcher year={year} month={month} onPrev={() => shiftMonth(-1)} onNext={() => shiftMonth(1)} />
         <Button variant="outline" size="sm" onClick={handleClone} disabled={cloning} className="ml-1">
           <Copy className="h-4 w-4 mr-1.5" />
           {cloning ? copy.budget.copying : copy.budget.copyPrevious}
@@ -227,7 +211,7 @@ export default function PresupuestoPage() {
 
       {/* ── Bulk apply panel ─────────────────────────────────────── */}
       {showApplyDialog && (
-        <Card className="border-dashed">
+        <Card className="animate-rise border-dashed">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm flex items-center justify-between">
               <span>
@@ -273,7 +257,7 @@ export default function PresupuestoPage() {
             </div>
 
             {applyResult && (
-              <div className="px-3 py-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-sm text-emerald-700 dark:text-emerald-400">
+              <div className="rounded-lg border border-positive/30 bg-positive/10 px-3 py-2.5 text-sm text-positive" role="status">
                 ✓ {copy.budget.applied} {applyResult.done} {applyResult.done === 1 ? copy.budget.month : copy.budget.months}
               </div>
             )}
@@ -298,9 +282,9 @@ export default function PresupuestoPage() {
       )}
 
       {/* ── Budget lines ─────────────────────────────────────────── */}
-      <Card>
+      <Card className="animate-rise" style={{ animationDelay: '120ms' }}>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">{copy.budget.categories}</CardTitle>
+          <CardTitle>{copy.budget.categories}</CardTitle>
         </CardHeader>
         <CardContent className="px-0 pb-0">
           {loading ? (
@@ -336,10 +320,10 @@ export default function PresupuestoPage() {
                     idx < sortedExpenseCats.length - 1 ? 'border-b' : ''
                   }`}
                 >
-                  {/* Subtle proportion bar behind the row */}
+                  {/* Share of the total, drawn as a hairline along the row's base */}
                   {pct > 0 && (
                     <div
-                      className="absolute left-0 top-0 h-full opacity-[0.035] pointer-events-none rounded-none"
+                      className="pointer-events-none absolute bottom-0 left-0 h-[2px] opacity-60"
                       style={{ width: `${pct}%`, backgroundColor: cat.color }}
                     />
                   )}
@@ -347,7 +331,7 @@ export default function PresupuestoPage() {
                     <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
                     <span className="font-medium text-sm">{cat.name}</span>
                     {pct > 0 && (
-                      <span className="text-[10px] text-muted-foreground/60 font-mono">
+                      <span className="figures text-[11px] text-muted-foreground">
                         {pct.toFixed(0)}%
                       </span>
                     )}
@@ -359,41 +343,39 @@ export default function PresupuestoPage() {
                       min="0"
                       value={edits[cat.id] ?? '0'}
                       onChange={e => setEdits(prev => ({ ...prev, [cat.id]: e.target.value }))}
-                      className="w-28 text-right font-mono h-8 text-sm"
+                      className="figures h-9 w-32 text-right text-[14px]"
                     />
-                    <span className="text-muted-foreground text-sm w-3">{settings.defaultCurrency}</span>
+                    <span className="w-8 text-[12px] text-muted-foreground">{settings.defaultCurrency}</span>
                   </div>
                 </div>
               )
             })}
 
-            {/* Total footer */}
-            <div className="px-6 py-4 border-t bg-muted/20 rounded-b-xl">
-              <div className="flex items-center justify-between font-semibold">
-                <span>{copy.budget.monthlyTotal}</span>
-                <span className="font-mono text-lg">{formatCurrency(totalBudget)}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm text-muted-foreground mt-0.5">
-                <span>{copy.budget.perPerson}</span>
-                <span className="font-mono">{formatCurrency(totalBudget / Math.max(settings.householdSize, 1))}</span>
-              </div>
-            </div>
           </>
           )}
         </CardContent>
       </Card>
 
-      {/* ── Save button ──────────────────────────────────────────── */}
-      <Button
-        onClick={handleSave}
-        disabled={saving}
-        className={`transition-all ${saved ? 'bg-emerald-600 hover:bg-emerald-600' : ''}`}
-      >
-        {saved
-          ? <><Check className="h-4 w-4 mr-1.5" />{copy.budget.saved}</>
-          : <><Save className="h-4 w-4 mr-1.5" />{saving ? copy.budget.saving : copy.budget.saveBudget}</>
-        }
-      </Button>
+      {/* ── Sticky total + save ──────────────────────────────────── */}
+      <div className="surface sticky bottom-4 z-10 flex flex-wrap items-center justify-between gap-4 px-5 py-4 md:px-6">
+        <div>
+          <p className="eyebrow">{copy.budget.monthlyTotal}</p>
+          <p className="font-display figures text-[26px] leading-tight">{formatCurrency(totalBudget)}</p>
+          <p className="figures text-[12px] text-muted-foreground">
+            {copy.budget.perPerson} · {formatCurrency(totalBudget / Math.max(settings.householdSize, 1))}
+          </p>
+        </div>
+        <Button
+          onClick={handleSave}
+          disabled={saving || loading}
+          className={saved ? 'bg-positive hover:bg-positive' : ''}
+        >
+          {saved
+            ? <><Check className="size-4" />{copy.budget.saved}</>
+            : <><Save className="size-4" />{saving ? copy.budget.saving : copy.budget.saveBudget}</>
+          }
+        </Button>
+      </div>
     </div>
   )
 }

@@ -14,28 +14,47 @@ export function normalizeMatchValue(matchType: string, matchValue: string): stri
 }
 
 /**
+ * Text used for plain-text matching: accent-free, lowercase, punctuation
+ * turned into single spaces, padded so whole words can be matched with
+ * ` value `. "Túnels… Generalitat" -> " tunels generalitat ".
+ */
+function matchableText(text: string): string {
+  const words = text
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9*]+/g, ' ')
+    .trim()
+  return ` ${words} `
+}
+
+/**
  * Builds a matcher for a set of rules. Rules are evaluated in priority order
  * (lowest number = highest priority); inactive rules and invalid regexes are
  * ignored. Regexes are compiled once, so the matcher is cheap to call for
  * every row of an import.
+ *
+ * Plain-text rules match whole words, ignoring case and accents: "generali"
+ * matches "Generali Seg." but not "Generalitat", "tere" matches "Deuda Tere"
+ * but not "Intereses".
  */
 export function createRuleMatcher(rules: MappingRule[]): (description: string) => MappingRule | null {
   const compiled = [...rules]
     .filter(r => r.isActive)
     .sort((a, b) => a.priority - b.priority)
     .flatMap(rule => {
-      const val = rule.matchValue.toLowerCase()
+      const val = matchableText(rule.matchValue)
       switch (rule.matchType) {
         case 'exact':
           return [{ rule, test: (desc: string) => desc === val }]
         case 'contains':
           return [{ rule, test: (desc: string) => desc.includes(val) }]
         case 'starts_with':
+          // the value's trailing space is part of the word boundary
           return [{ rule, test: (desc: string) => desc.startsWith(val) }]
         case 'regex':
           try {
             const re = new RegExp(rule.matchValue, 'i')
-            return [{ rule, test: (desc: string) => re.test(desc) }]
+            return [{ rule, test: (_desc: string, raw: string) => re.test(raw) }]
           } catch {
             return [] // Invalid regex — skip
           }
@@ -45,8 +64,9 @@ export function createRuleMatcher(rules: MappingRule[]): (description: string) =
     })
 
   return (description: string) => {
-    const desc = description.toLowerCase().trim()
-    return compiled.find(c => c.test(desc))?.rule ?? null
+    const desc = matchableText(description)
+    const raw = description.trim()
+    return compiled.find(c => c.test(desc, raw))?.rule ?? null
   }
 }
 

@@ -119,3 +119,26 @@ export function fromMonthKey(key: string): { year: number; month: number } {
   const [y, m] = key.split('-')
   return { year: parseInt(y), month: parseInt(m) }
 }
+
+/** "12 sept" — day and short month of a wall-clock date, for dense lists. */
+export function formatDayMonth(dateStr: string): string {
+  const parts = parseDateParts(String(dateStr ?? ''))
+  if (!parts) return formatDate(dateStr)
+  return new Intl.DateTimeFormat(currentConfig.locale, {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(parts.year, parts.month - 1, parts.day)))
+}
+
+/** "viernes, 12 de septiembre" — heading for a day group. */
+export function formatLongDay(dateStr: string): string {
+  const parts = parseDateParts(String(dateStr ?? ''))
+  if (!parts) return formatDate(dateStr)
+  return new Intl.DateTimeFormat(currentConfig.locale, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(parts.year, parts.month - 1, parts.day)))
+}

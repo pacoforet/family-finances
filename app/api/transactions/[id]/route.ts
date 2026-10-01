@@ -4,6 +4,7 @@ import { transactions } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 import { parseJsonBody, withApiErrors } from '@/lib/api'
 import { transactionUpdateSchema } from '@/lib/validation'
+import { clearedSuggestion } from '@/lib/auto-categorize'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -26,6 +27,11 @@ export const PATCH = withApiErrors(async (request: NextRequest, { params }: Para
   // Mark as manual when category is manually set; clearing it clears the source
   if (body.categoryId !== undefined) {
     updates.categorySource = body.categoryId ? 'manual' : null
+  }
+
+  // A manual decision supersedes any pending suggestion
+  if (body.categoryId || body.excludeFromBudget) {
+    Object.assign(updates, clearedSuggestion)
   }
 
   const updated = await db.update(transactions).set(updates).where(eq(transactions.id, id)).returning()

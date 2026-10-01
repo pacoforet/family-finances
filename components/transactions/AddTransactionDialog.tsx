@@ -137,7 +137,7 @@ export function AddTransactionDialog({ open, onOpenChange, categories, onSaved }
             />
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-negative">{error}</p>}
         </div>
 
         <DialogFooter>

@@ -1,444 +1,339 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, TrendingDown, TrendingUp, Wallet, Users, AlertTriangle } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { useEffect, useState } from 'react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { formatCurrency, formatMonthYear, monthLabel } from '@/lib/format'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Meter, Money, MonthSwitcher, PageHeader, StatusPill, fill } from '@/components/kit'
+import { formatCurrency, monthLabel } from '@/lib/format'
+import { cn } from '@/lib/utils'
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  PieChart, Pie, Cell, ResponsiveContainer,
+  Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
 import type { MonthSummary } from '@/lib/budget-calculator'
 import { useAppSettings } from '@/components/providers/AppSettingsProvider'
 import { useUiCopy } from '@/lib/ui-copy'
 import { fetchJson } from '@/lib/fetch-json'
 
-// ─── Custom tooltip for donut chart ─────────────────────────────────────────
-function PieTooltip({ active, payload, total }: { active?: boolean; payload?: { name: string; value: number; payload: { color: string } }[]; total: number }) {
+type YearRow = { month: string; spent: number; budgeted: number }
+
+function TooltipShell({ children }: { children: React.ReactNode }) {
+  return <div className="min-w-36 rounded-xl border bg-popover px-3 py-2.5 text-sm text-popover-foreground shadow-lg">{children}</div>
+}
+
+function PieTooltip({ active, payload, total }: {
+  active?: boolean
+  payload?: { name: string; value: number; payload: { color: string } }[]
+  total: number
+}) {
   if (!active || !payload?.length) return null
   const d = payload[0]
-  const pct = total > 0 ? ((d.value / total) * 100).toFixed(1) : '0'
   return (
-    <div className="bg-white border shadow-lg rounded-lg px-3 py-2 text-sm">
+    <TooltipShell>
       <div className="flex items-center gap-2">
-        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: d.payload.color }} />
+        <span className="size-2.5 rounded-full" style={{ backgroundColor: d.payload.color }} />
         <span className="font-medium">{d.name}</span>
       </div>
       <div className="mt-1 flex items-center justify-between gap-4">
-        <span className="text-muted-foreground text-xs">{pct}%</span>
-        <span className="font-mono font-semibold">{formatCurrency(d.value)}</span>
+        <span className="figures text-xs text-muted-foreground">{total > 0 ? ((d.value / total) * 100).toFixed(1) : 0}%</span>
+        <Money amount={d.value} className="font-semibold" />
       </div>
-    </div>
+    </TooltipShell>
   )
 }
 
-// ─── Custom tooltip for bar chart ───────────────────────────────────────────
-function BarTooltip({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; fill: string }[]; label?: string }) {
+function BarTooltip({ active, payload, label, labels }: {
+  active?: boolean
+  payload?: { payload: YearRow }[]
+  label?: string
+  labels: { spent: string; budget: string }
+}) {
   if (!active || !payload?.length) return null
+  const row = payload[0].payload
   return (
-    <div className="bg-white border shadow-lg rounded-lg px-3 py-2.5 text-sm min-w-36">
-      <p className="font-medium mb-2 capitalize">{label}</p>
-      {payload.map((p, i) => (
-        <div key={i} className="flex items-center justify-between gap-4 text-xs">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.fill }} />
-            <span className="text-muted-foreground">{p.name}</span>
-          </div>
-          <span className="font-mono font-medium">{formatCurrency(p.value)}</span>
-        </div>
-      ))}
-    </div>
+    <TooltipShell>
+      <p className="mb-1.5 font-medium capitalize">{label}</p>
+      <div className="flex justify-between gap-4 text-xs">
+        <span className="text-muted-foreground">{labels.spent}</span>
+        <Money amount={row.spent} className="font-semibold" />
+      </div>
+      <div className="flex justify-between gap-4 text-xs">
+        <span className="text-muted-foreground">{labels.budget}</span>
+        <Money amount={row.budgeted} />
+      </div>
+    </TooltipShell>
   )
 }
 
 export default function InformesPage() {
   const settings = useAppSettings()
   const copy = useUiCopy()
+  const t = copy.reports
   const now = new Date()
-  const [year, setYear]   = useState(now.getFullYear())
+  const [year, setYear] = useState(now.getFullYear())
   const [month, setMonth] = useState(now.getMonth() + 1)
-  const [view, setView]   = useState<'mensual' | 'anual'>('mensual')
+  const [view, setView] = useState<'monthly' | 'yearly'>('monthly')
   const [summary, setSummary] = useState<MonthSummary | null>(null)
-  const [yearData, setYearData] = useState<Array<{ month: string; total: number; presupuesto: number }>>([])
+  const [yearData, setYearData] = useState<YearRow[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (view !== 'mensual') return
+    if (view !== 'monthly') return
     fetchJson(`/api/budget/${year}/${month}`)
-      .then(d => { setSummary(d.summary); setLoading(false) })
-      .catch(() => { setSummary(null); setLoading(false); alert(copy.common.loadFailed) })
+      .then(d => setSummary(d.summary))
+      .catch(() => { setSummary(null); alert(copy.common.loadFailed) })
+      .finally(() => setLoading(false))
   }, [year, month, view, copy])
 
   useEffect(() => {
-    if (view !== 'anual') return
-    fetchJson<{ months: Array<{ month: number; budgeted: number; actual: number }> }>(
-      `/api/reports/year?year=${year}`
-    ).then(({ months }) => {
-      setYearData(months.map(m => ({
+    if (view !== 'yearly') return
+    fetchJson<{ months: Array<{ month: number; budgeted: number; actual: number }> }>(`/api/reports/year?year=${year}`)
+      .then(({ months }) => setYearData(months.map(m => ({
         month: monthLabel(year, m.month),
-        total: m.actual,
-        presupuesto: m.budgeted,
-      })))
-      setLoading(false)
-    }).catch(() => { setLoading(false); alert(copy.common.loadFailed) })
+        spent: m.actual,
+        budgeted: m.budgeted,
+      }))))
+      .catch(() => alert(copy.common.loadFailed))
+      .finally(() => setLoading(false))
   }, [year, view, copy])
 
-  const prevMonth = () => {
+  const shiftMonth = (delta: number) => {
+    const index = year * 12 + (month - 1) + delta
     setLoading(true)
-    if (month === 1) { setYear(y => y - 1); setMonth(12) }
-    else setMonth(m => m - 1)
+    setYear(Math.floor(index / 12))
+    setMonth((index % 12) + 1)
   }
-  const nextMonth = () => {
-    setLoading(true)
-    if (month === 12) { setYear(y => y + 1); setMonth(1) }
-    else setMonth(m => m + 1)
-  }
+  const isCurrentMonth = year === now.getFullYear() && month === now.getMonth() + 1
 
-  // ── Derived data ───────────────────────────────────────────────────────────
   const pieData = summary?.lines
     .filter(l => l.actual > 0)
     .sort((a, b) => b.actual - a.actual)
     .map(l => ({ name: l.categoryName, value: l.actual, color: l.color })) ?? []
-
   const pieTotal = pieData.reduce((s, d) => s + d.value, 0)
-
   const sortedLines = summary?.lines
     .filter(l => l.budgeted > 0 || l.actual > 0)
     .sort((a, b) => b.actual - a.actual) ?? []
 
-  const overBudget = summary?.lines.filter(l => l.status === 'over') ?? []
-  const savings = summary?.totals.variance ?? 0
-
-  const yearMonthsWithData = yearData.filter(d => d.total > 0)
-  const yearTotal   = yearData.reduce((s, d) => s + d.total, 0)
-  const yearAvg     = yearMonthsWithData.length > 0 ? yearTotal / yearMonthsWithData.length : 0
-  const yearPerson  = yearTotal / Math.max(settings.householdSize, 1)
+  const monthsWithData = yearData.filter(d => d.spent > 0)
+  const yearTotal = yearData.reduce((s, d) => s + d.spent, 0)
+  const yearAvg = monthsWithData.length > 0 ? yearTotal / monthsWithData.length : 0
+  const monthsOver = monthsWithData.filter(d => d.budgeted > 0 && d.spent > d.budgeted).length
+  const statusLabels = { ok: t.onTrack, warning: t.watch, over: t.over }
 
   return (
-    <div className="px-4 py-6 md:px-6 space-y-6 w-full">
+    <div className="mx-auto w-full max-w-6xl space-y-7 px-4 py-8 md:px-8 md:py-10">
+      <PageHeader
+        eyebrow={settings.householdName}
+        title={t.title}
+        subtitle={t.subtitle}
+        actions={
+          <div role="tablist" className="inline-flex rounded-full border bg-card p-1">
+            {(['monthly', 'yearly'] as const).map(v => (
+              <button
+                key={v}
+                role="tab"
+                aria-selected={view === v}
+                onClick={() => { if (view !== v) { setLoading(true); setView(v) } }}
+                className={cn(
+                  'rounded-full px-4 py-1.5 text-[13px] font-medium transition-colors',
+                  view === v ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {v === 'monthly' ? t.monthly : t.yearly}
+              </button>
+            ))}
+          </div>
+        }
+      />
 
-      {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">{copy.reports.title}</h1>
-          <p className="text-muted-foreground text-sm">{copy.reports.subtitle}</p>
-        </div>
-
-        {/* Segmented control */}
-        <div className="flex rounded-lg border p-0.5 gap-0.5 bg-muted/40">
-          {(['mensual', 'anual'] as const).map(v => (
-            <button
-              key={v}
-              onClick={() => { if (view !== v) { setLoading(true); setView(v) } }}
-              className={`px-4 py-1.5 text-sm rounded-md font-medium transition-all capitalize ${
-                view === v
-                  ? 'bg-white shadow-sm text-foreground dark:bg-gray-800'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {v === 'mensual' ? copy.reports.monthly : copy.reports.yearly}
+      <div className="animate-rise" style={{ animationDelay: '60ms' }}>
+        {view === 'monthly' ? (
+          <MonthSwitcher year={year} month={month} onPrev={() => shiftMonth(-1)} onNext={() => shiftMonth(1)} canGoNext={!isCurrentMonth} />
+        ) : (
+          <div className="surface inline-flex items-center gap-1 rounded-full p-1">
+            <button type="button" aria-label="Año anterior" onClick={() => { setLoading(true); setYear(y => y - 1) }}
+              className="grid size-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground">
+              <ChevronLeft className="size-4" />
             </button>
-          ))}
-        </div>
+            <span className="font-display figures min-w-20 text-center text-[17px]">{year}</span>
+            <button type="button" aria-label="Año siguiente" disabled={year >= now.getFullYear()}
+              onClick={() => { setLoading(true); setYear(y => y + 1) }}
+              className="grid size-8 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-30">
+              <ChevronRight className="size-4" />
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* ── Month / Year navigator ────────────────────────────────────────── */}
-      <div className="flex items-center gap-3">
-        <Button variant="outline" size="icon"
-          onClick={view === 'mensual' ? prevMonth : () => { setLoading(true); setYear(y => y - 1) }}>
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <span className="text-lg font-medium w-32 text-center capitalize">
-          {view === 'mensual' ? formatMonthYear(year, month) : String(year)}
-        </span>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={view === 'mensual' ? nextMonth : () => { setLoading(true); setYear(y => y + 1) }}
-          disabled={
-            view === 'mensual'
-              ? year === now.getFullYear() && month === now.getMonth() + 1
-              : year === now.getFullYear()
-          }
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {/* ── Loading ───────────────────────────────────────────────────────── */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-3">
-          <div className="w-6 h-6 border-2 border-current border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm">{copy.reports.loading}</span>
+        <div className="grid gap-4 md:grid-cols-4">
+          {[0, 1, 2, 3].map(i => <div key={i} className="surface space-y-2 p-5"><Skeleton className="h-3 w-20" /><Skeleton className="h-7 w-28" /></div>)}
+          <div className="surface h-72 md:col-span-4" />
         </div>
+      ) : view === 'monthly' ? (
+        !summary || summary.lines.length === 0 ? (
+          <Card><CardContent className="py-14 text-center text-muted-foreground">{t.noData}</CardContent></Card>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              <Kpi delay={100} label={t.spent} value={<Money amount={summary.totals.actual} />}
+                hint={`${summary.totals.pct}% ${t.of} ${t.budget.toLowerCase()}`} />
+              <Kpi delay={140} label={t.budget} value={<Money amount={summary.totals.budgeted} />} hint={t.plannedTotal} />
+              <Kpi delay={180}
+                label={summary.totals.variance >= 0 ? t.remaining : t.over}
+                value={<Money amount={summary.totals.variance} tone signed className={summary.totals.variance < 0 ? 'text-negative' : undefined} />}
+                hint={summary.totals.variance >= 0 ? t.underBudget : t.overBudget} />
+              <Kpi delay={220} label={t.perPerson} value={<Money amount={summary.perPerson.actual} />}
+                hint={`${t.of} ${formatCurrency(summary.perPerson.budgeted)}`} />
+            </div>
 
-      ) : view === 'mensual' ? (
-        /* ════════════════════════ MENSUAL ════════════════════════ */
-        <>
-          {(!summary || summary.lines.length === 0) ? (
-            <Card>
-              <CardContent className="text-center py-12 text-muted-foreground">
-                {copy.reports.noData}
-              </CardContent>
-            </Card>
-          ) : (
-            <>
-              {/* ── KPI cards ─────────────────────────────────────────────── */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-
-                <Card>
-                  <CardContent className="pt-5 pb-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">{copy.reports.spent}</p>
-                        <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{formatCurrency(summary.totals.actual)}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{summary.totals.pct}% {copy.reports.of} {copy.reports.budget.toLowerCase()}</p>
+            <div className="grid gap-4 lg:grid-cols-5">
+              <Card className="animate-rise lg:col-span-3" style={{ animationDelay: '260ms' }}>
+                <CardHeader className="pb-1"><CardTitle>{t.byCategory}</CardTitle></CardHeader>
+                <CardContent className="divide-y divide-border/70">
+                  {sortedLines.map(l => (
+                    <div key={l.categoryId} className="space-y-2 py-3.5">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                          <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: l.color }} />
+                          <span className="truncate text-[14px] font-medium">{l.categoryName}</span>
+                          {l.status !== 'ok' && <StatusPill status={l.status} labels={statusLabels} />}
+                        </div>
+                        <div className="shrink-0 text-right text-[13px]">
+                          <Money amount={l.actual} className={l.status === 'over' ? 'font-semibold text-negative' : 'font-semibold'} />
+                          <span className="figures text-muted-foreground"> / {formatCurrency(l.budgeted)}</span>
+                        </div>
                       </div>
-                      <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800">
-                        <Wallet className="h-4 w-4 text-gray-500" />
-                      </div>
+                      <Meter value={l.actual} max={l.budgeted} color={l.color} />
                     </div>
-                  </CardContent>
-                </Card>
+                  ))}
+                </CardContent>
+              </Card>
 
-                <Card>
-                  <CardContent className="pt-5 pb-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">{copy.reports.budget}</p>
-                        <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{formatCurrency(summary.totals.budgeted)}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{copy.reports.plannedTotal}</p>
-                      </div>
-                      <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950">
-                        <TrendingUp className="h-4 w-4 text-blue-500" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className={savings >= 0
-                  ? 'border-emerald-200 bg-emerald-50/40 dark:border-emerald-800 dark:bg-emerald-950/20'
-                  : 'border-red-200 bg-red-50/40 dark:border-red-800 dark:bg-red-950/20'
-                }>
-                  <CardContent className="pt-5 pb-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">
-                          {savings >= 0 ? copy.reports.remaining : copy.reports.over}
-                        </p>
-                        <p className={`text-2xl font-bold mt-1 font-mono tracking-tight ${
-                          savings >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-600'
-                        }`}>
-                          {savings >= 0 ? '+' : ''}{formatCurrency(savings)}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {savings >= 0 ? copy.reports.underBudget : copy.reports.overBudget}
-                        </p>
-                      </div>
-                      <div className={`p-2 rounded-lg ${
-                        savings >= 0 ? 'bg-emerald-100 dark:bg-emerald-900' : 'bg-red-100 dark:bg-red-900'
-                      }`}>
-                        {savings >= 0
-                          ? <TrendingDown className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                          : <AlertTriangle className="h-4 w-4 text-red-600" />
-                        }
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="pt-5 pb-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">{copy.reports.perPerson}</p>
-                        <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{formatCurrency(summary.perPerson.actual)}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{copy.reports.of} {formatCurrency(summary.perPerson.budgeted)}</p>
-                      </div>
-                      <div className="p-2 rounded-lg bg-violet-50 dark:bg-violet-950">
-                        <Users className="h-4 w-4 text-violet-500" />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* ── Over-budget alert ─────────────────────────────────────── */}
-              {overBudget.length > 0 && (
-                <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-50 border border-red-200 dark:bg-red-950/30 dark:border-red-800 text-sm">
-                  <AlertTriangle className="h-4 w-4 text-red-600 shrink-0" />
-                  <span className="text-red-800 dark:text-red-300">
-                    <span className="font-semibold">{copy.reports.overBudget}</span>{' '}
-                    {copy.dashboard.in} {overBudget.map(c => c.categoryName).join(', ')}
-                  </span>
-                </div>
-              )}
-
-              {/* ── Category breakdown + Donut ────────────────────────────── */}
-              <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-
-                {/* Horizontal progress bars */}
-                <Card className="lg:col-span-3">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base">{copy.reports.byCategory}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {sortedLines.map(l => {
-                      const pct = Math.min(l.pct, 100)
-                      const barColor =
-                        l.status === 'over' ? '#EF4444' :
-                        l.status === 'warning' ? '#F59E0B' :
-                        l.color
-                      return (
-                        <div key={l.categoryId} className="space-y-1.5">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-2 min-w-0 flex-1">
-                              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: l.color }} />
-                              <span className="text-sm font-medium truncate">{l.categoryName}</span>
-                              {l.status === 'over' && (
-                                <span className="shrink-0 text-[10px] bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400 px-1.5 py-0.5 rounded-full font-semibold">
-                                  {copy.reports.over}
-                                </span>
-                              )}
-                              {l.status === 'warning' && (
-                                <span className="shrink-0 text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 px-1.5 py-0.5 rounded-full font-semibold">
-                                  {copy.reports.watch}
-                                </span>
-                              )}
-                            </div>
-                            <div className="shrink-0 text-right">
-                              <span className={`font-mono text-xs font-semibold ${l.status === 'over' ? 'text-red-600' : ''}`}>
-                                {formatCurrency(l.actual)}
-                              </span>
-                              <span className="text-[11px] text-muted-foreground ml-1">
-                                / {formatCurrency(l.budgeted)}
-                              </span>
-                            </div>
-                          </div>
-                          {/* Progress bar */}
-                          <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                            <div
-                              className="h-full rounded-full transition-all duration-700 ease-out"
-                              style={{ width: `${pct}%`, backgroundColor: barColor }}
-                            />
+              <Card className="animate-rise lg:col-span-2" style={{ animationDelay: '320ms' }}>
+                <CardHeader className="pb-1"><CardTitle>{t.distribution}</CardTitle></CardHeader>
+                <CardContent>
+                  {pieData.length === 0 ? (
+                    <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">{t.noSpending}</div>
+                  ) : (
+                    <>
+                      <div className="relative">
+                        <ResponsiveContainer width="100%" height={210}>
+                          <PieChart>
+                            <Pie data={pieData} cx="50%" cy="50%" innerRadius={62} outerRadius={92} paddingAngle={1.5}
+                              dataKey="value" stroke="var(--card)" strokeWidth={2}>
+                              {pieData.map((entry, idx) => <Cell key={idx} fill={entry.color} />)}
+                            </Pie>
+                            <Tooltip content={<PieTooltip total={pieTotal} />} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                          <div className="text-center">
+                            <div className="font-display figures text-[20px] leading-none">{formatCurrency(pieTotal)}</div>
+                            <div className="eyebrow mt-1 text-[9.5px]">{t.totalSpent}</div>
                           </div>
                         </div>
-                      )
-                    })}
-                  </CardContent>
-                </Card>
-
-                {/* Donut chart */}
-                <Card className="lg:col-span-2">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base">{copy.reports.distribution}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {pieData.length === 0 ? (
-                      <div className="h-48 flex items-center justify-center text-sm text-muted-foreground">
-                        {copy.reports.noSpending}
                       </div>
-                    ) : (
-                      <>
-                        <div className="relative">
-                          <ResponsiveContainer width="100%" height={190}>
-                            <PieChart>
-                              <Pie
-                                data={pieData}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={52}
-                                outerRadius={82}
-                                dataKey="value"
-                                stroke="white"
-                                strokeWidth={2}
-                              >
-                                {pieData.map((entry, idx) => (
-                                  <Cell key={idx} fill={entry.color} />
-                                ))}
-                              </Pie>
-                              <Tooltip content={<PieTooltip total={pieTotal} />} />
-                            </PieChart>
-                          </ResponsiveContainer>
-                          {/* Centered total */}
-                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div className="text-center">
-                              <div className="text-base font-bold font-mono leading-none">{formatCurrency(pieTotal)}</div>
-                              <div className="text-[10px] text-muted-foreground mt-0.5">{copy.reports.totalSpent.toLowerCase()}</div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Compact legend */}
-                        <div className="mt-1 space-y-1.5 border-t pt-3">
-                          {pieData.slice(0, 7).map(d => (
-                            <div key={d.name} className="flex items-center justify-between">
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
-                                <span className="text-xs text-muted-foreground truncate">{d.name}</span>
-                              </div>
-                              <span className="text-xs font-mono font-medium shrink-0 ml-2">
-                                {pieTotal > 0 ? ((d.value / pieTotal) * 100).toFixed(0) : 0}%
-                              </span>
-                            </div>
-                          ))}
-                          {pieData.length > 7 && (
-                            <p className="text-[11px] text-muted-foreground text-center pt-0.5">
-                              +{pieData.length - 7} {copy.reports.moreCategories}
-                            </p>
-                          )}
-                        </div>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            </>
-          )}
-        </>
-
+                      <ul className="mt-2 space-y-2 border-t pt-4">
+                        {pieData.slice(0, 7).map(d => (
+                          <li key={d.name} className="flex items-center justify-between gap-2 text-[12.5px]">
+                            <span className="flex min-w-0 items-center gap-2">
+                              <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: d.color }} />
+                              <span className="truncate text-muted-foreground">{d.name}</span>
+                            </span>
+                            <span className="figures shrink-0 font-medium">{pieTotal > 0 ? ((d.value / pieTotal) * 100).toFixed(0) : 0}%</span>
+                          </li>
+                        ))}
+                        {pieData.length > 7 && (
+                          <li className="pt-0.5 text-center text-[11px] text-muted-foreground">+{pieData.length - 7} {t.moreCategories}</li>
+                        )}
+                      </ul>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </>
+        )
       ) : (
-        /* ════════════════════════ ANUAL ════════════════════════ */
         <>
-          {/* ── Annual bar chart ─────────────────────────────────────────── */}
-          <Card>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Kpi delay={100} label={t.totalSpent} value={<Money amount={yearTotal} />}
+              hint={fill(t.monthsOver, { count: monthsOver, total: monthsWithData.length })} />
+            <Kpi delay={140} label={t.monthlyAverage} value={<Money amount={yearAvg} />}
+              hint={`${monthsWithData.length} ${t.monthsWithData}`} />
+            <Kpi delay={180} label={t.perPersonYear} value={<Money amount={yearTotal / Math.max(settings.householdSize, 1)} />} hint={String(year)} />
+          </div>
+
+          <Card className="animate-rise" style={{ animationDelay: '220ms' }}>
             <CardHeader>
-              <CardTitle className="text-base">{copy.reports.totalSpendingByMonth} — {year}</CardTitle>
+              <CardTitle>{t.totalSpendingByMonth} · {year}</CardTitle>
+              <div className="flex items-center gap-4 pt-1 text-[12px] text-muted-foreground">
+                <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-primary" />{t.spent}</span>
+                <span className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-terracotta" />{t.overBudget}</span>
+                <span className="flex items-center gap-1.5"><span className="w-3.5 border-t-2 border-foreground/50" />{t.budget}</span>
+              </div>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={yearData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }} barGap={3}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-                  <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <YAxis tickFormatter={v => `${v}€`} tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                  <Tooltip content={<BarTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)' }} />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="presupuesto" name={copy.reports.budget} fill="#E2E8F0" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="total" name={copy.reports.spent} fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                <BarChart data={yearData} margin={{ top: 5, right: 8, left: 0, bottom: 0 }} barCategoryGap="28%">
+                  <CartesianGrid stroke="var(--border)" strokeDasharray="2 4" vertical={false} />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
+                  <YAxis tickFormatter={v => `${Math.round(v / 100) / 10}k`} tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+                    axisLine={false} tickLine={false} width={40}
+                    domain={[0, Math.ceil(Math.max(1, ...yearData.map(d => Math.max(d.spent, d.budgeted))) * 1.05)]} />
+                  <Tooltip content={<BarTooltip labels={{ spent: t.spent, budget: t.budget }} />} cursor={{ fill: 'var(--muted)', opacity: 0.6 }} />
+                  <Bar dataKey="spent" name={t.spent} radius={[4, 4, 0, 0]}
+                    shape={(props: unknown) => <BudgetBar {...(props as BudgetBarProps)} />}>
+                    {yearData.map((d, i) => (
+                      <Cell key={i} fill={d.budgeted > 0 && d.spent > d.budgeted ? 'var(--terracotta)' : 'var(--primary)'} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
-
-          {/* ── Annual KPIs ───────────────────────────────────────────────── */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {[
-              { label: copy.reports.totalSpent, value: formatCurrency(yearTotal) },
-              { label: copy.reports.monthlyAverage, value: formatCurrency(yearAvg), note: `${yearMonthsWithData.length} ${copy.reports.monthsWithData}` },
-              { label: copy.reports.perPersonYear, value: formatCurrency(yearPerson) },
-            ].map(item => (
-              <Card key={item.label}>
-                <CardContent className="pt-5 pb-4 text-center">
-                  <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider mb-1">{item.label}</p>
-                  <p className="text-2xl font-bold font-mono tracking-tight">{item.value}</p>
-                  {item.note && <p className="text-xs text-muted-foreground mt-1">{item.note}</p>}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
         </>
       )}
+    </div>
+  )
+}
+
+interface BudgetBarProps {
+  x: number
+  y: number
+  width: number
+  height: number
+  fill: string
+  background?: { y: number; height: number }
+  payload: YearRow
+  value: number
+}
+
+/** Spending bar with the month's budget drawn as a tick across it. */
+function BudgetBar({ x, y, width, height, fill: color, payload, value }: BudgetBarProps) {
+  const r = Math.min(4, width / 2, Math.max(height, 0))
+  const scale = value > 0 ? height / value : 0
+  const bottom = y + height
+  const budgetY = scale > 0 ? bottom - payload.budgeted * scale : null
+  return (
+    <g>
+      {height > 0 && (
+        <path d={`M${x},${bottom} V${y + r} Q${x},${y} ${x + r},${y} H${x + width - r} Q${x + width},${y} ${x + width},${y + r} V${bottom} Z`} fill={color} />
+      )}
+      {budgetY !== null && payload.budgeted > 0 && (
+        <line x1={x - 3} x2={x + width + 3} y1={budgetY} y2={budgetY} stroke="var(--foreground)" strokeOpacity={0.5} strokeWidth={2} strokeLinecap="round" />
+      )}
+    </g>
+  )
+}
+
+function Kpi({ label, value, hint, delay }: { label: string; value: React.ReactNode; hint: string; delay: number }) {
+  return (
+    <div className="surface animate-rise space-y-1 p-5" style={{ animationDelay: `${delay}ms` }}>
+      <p className="eyebrow">{label}</p>
+      <p className="font-display text-[24px] leading-tight">{value}</p>
+      <p className="text-[12px] text-muted-foreground">{hint}</p>
     </div>
   )
 }

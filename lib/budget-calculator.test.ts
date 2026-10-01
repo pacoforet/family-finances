@@ -14,6 +14,7 @@ function tx(overrides: Partial<Transaction>): Transaction {
     comision: 0, divisa: 'EUR', state: 'COMPLETED', saldo: null, categoryId: 'food',
     categorySource: null, notes: null, isManual: false, excludeFromBudget: false,
     splitAnnual: false, budgetDate: null, createdAt: '', updatedAt: '',
+    suggestedCategoryId: null, suggestedExclude: false, suggestionConfidence: null, suggestionSource: null, suggestionReason: null,
     ...overrides,
   }
 }
@@ -86,5 +87,7 @@ describe('computeMonthSummary', () => {
   it('splits totals per household member', () => {
     const s = computeMonthSummary(2025, 1, [line(100)], [tx({ importe: -30 })], CATS, 3)
     expect(s.perPerson).toEqual({ budgeted: 33.33, actual: 10 })
+    expect(s.cumulativeByDay).toHaveLength(31)
+    expect(s.cumulativeByDay.at(-1)).toBe(s.totals.actual)
   })
 })

@@ -1,55 +1,39 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 import { Moon, Sun } from 'lucide-react'
 import { useUiCopy } from '@/lib/ui-copy'
 
 type Theme = 'light' | 'dark'
 
-function applyTheme(theme: Theme) {
-  const root = document.documentElement
-  if (theme === 'dark') root.classList.add('dark')
-  else root.classList.remove('dark')
+// The theme lives in the <html> class (set before paint by the root layout script)
+function subscribe(onChange: () => void) {
+  const observer = new MutationObserver(onChange)
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+  return () => observer.disconnect()
 }
+const readTheme = (): Theme => (document.documentElement.classList.contains('dark') ? 'dark' : 'light')
 
 export function ThemeToggle() {
   const copy = useUiCopy()
-  const [theme, setTheme] = useState<Theme>(() => {
-    if (typeof window === 'undefined') return 'light'
-    const stored = localStorage.getItem('theme') as Theme | null
-    if (stored === 'light' || stored === 'dark') return stored
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-  })
-
-  useEffect(() => {
-    applyTheme(theme)
-  }, [theme])
+  const theme = useSyncExternalStore<Theme | null>(subscribe, readTheme, () => null)
 
   const toggleTheme = () => {
-    const nextTheme: Theme = theme === 'dark' ? 'light' : 'dark'
-    setTheme(nextTheme)
-    applyTheme(nextTheme)
-    localStorage.setItem('theme', nextTheme)
+    const next: Theme = theme === 'dark' ? 'light' : 'dark'
+    document.documentElement.classList.toggle('dark', next === 'dark')
+    try { localStorage.setItem('theme', next) } catch {}
   }
 
+  const isDark = theme === 'dark'
   return (
     <button
       type="button"
       onClick={toggleTheme}
-      className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-      aria-label={theme === 'dark' ? copy.nav.switchToLight : copy.nav.switchToDark}
+      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-[13px] text-sidebar-foreground/60 transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+      aria-label={isDark ? copy.nav.switchToLight : copy.nav.switchToDark}
     >
-      {theme === 'dark' ? (
-        <>
-          <Sun className="h-3.5 w-3.5" />
-          {copy.nav.lightMode}
-        </>
-      ) : (
-        <>
-          <Moon className="h-3.5 w-3.5" />
-          {copy.nav.darkMode}
-        </>
-      )}
+      {isDark ? <Sun className="size-4" strokeWidth={1.75} /> : <Moon className="size-4" strokeWidth={1.75} />}
+      {isDark ? copy.nav.lightMode : copy.nav.darkMode}
     </button>
   )
 }

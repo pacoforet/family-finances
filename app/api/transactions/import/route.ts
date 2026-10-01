@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/db'
-import { importBatches, mappingRules, transactions } from '@/db/schema'
+import { importBatches, transactions } from '@/db/schema'
 import { eq, inArray } from 'drizzle-orm'
 import { parseRevolutCSV, computeDedupHash, computeLegacyDedupHash, movementKey } from '@/lib/csv-parser'
-import { createRuleMatcher } from '@/lib/category-mapper'
+import { predictCategory } from '@/lib/categorizer'
+import { categorizationFields, loadCategorizer } from '@/lib/auto-categorize'
 import { v4 as uuidv4 } from 'uuid'
 import { withApiErrors } from '@/lib/api'
 
@@ -61,7 +62,8 @@ export const POST = withApiErrors(async (request: NextRequest) => {
   const csvText = await file.text()
   const { valid, skipped, errors } = parseRevolutCSV(csvText)
 
-  const match = createRuleMatcher(await db.select().from(mappingRules))
+  // Rules first, then what the household has taught the app (see lib/categorizer.ts)
+  const model = await loadCategorizer()
 
   const now = new Date().toISOString()
   let dupes = 0
@@ -93,7 +95,7 @@ export const POST = withApiErrors(async (request: NextRequest) => {
     existingMovements.exact.add(movementKey(row.fechaInicio, row.importe, row.saldo))
     existingMovements.timeAmount.add(movementKey(row.fechaInicio, row.importe, null))
 
-    const categoryId = match(row.descripcion)?.categoryId ?? null
+    const categorization = categorizationFields(predictCategory(model, row))
 
     rowsToInsert.push({
       id:            uuidv4(),
@@ -109,16 +111,15 @@ export const POST = withApiErrors(async (request: NextRequest) => {
       divisa:        row.divisa,
       state:         row.state,
       saldo:         row.saldo,
-      categoryId,
-      categorySource: categoryId ? 'auto_rule' : null,
       isManual:          false,
       excludeFromBudget: false,
+      ...categorization,
       createdAt:     now,
       updatedAt:     now,
     })
   }
 
-  const imported = await db.transaction(async (tx) => {
+  const insertedIds = await db.transaction(async (tx) => {
     await tx.insert(importBatches).values({
       id:           batchId,
       fileName:     file.name,
@@ -143,11 +144,14 @@ export const POST = withApiErrors(async (request: NextRequest) => {
       .set({ rowsImported: inserted.length })
       .where(eq(importBatches.id, batchId))
 
-    return inserted.length
+    return inserted.map(r => r.id)
   })
+  const imported = insertedIds.length
 
   // Rows that lost the race to a concurrent import are duplicates too.
   const conflictDupes = rowsToInsert.length - imported
+  const insertedSet = new Set(insertedIds)
+  const insertedRows = rowsToInsert.filter(r => insertedSet.has(r.id!))
 
   return NextResponse.json({
     batchId,
@@ -155,6 +159,8 @@ export const POST = withApiErrors(async (request: NextRequest) => {
     skipped: skipped.length - dupes,
     dupes: dupes + conflictDupes,
     errors: errors.length,
+    autoCategorized: insertedRows.filter(r => r.categorySource).length,
+    suggested: insertedRows.filter(r => r.suggestionSource).length,
     errorDetails: errors.slice(0, 10),
   })
 })

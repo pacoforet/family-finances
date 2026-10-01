@@ -41,3 +41,24 @@ describe('createRuleMatcher', () => {
     expect(applyMappingRules('123', [rule({ matchType: 'regex', matchValue: '^\\D+$', categoryId: 'letters' })])).toBeNull()
   })
 })
+
+describe('whole-word matching', () => {
+  it('does not match inside other words', () => {
+    const match = createRuleMatcher([
+      rule({ matchType: 'contains', matchValue: 'generali', categoryId: 'home-insurance' }),
+      rule({ matchType: 'contains', matchValue: 'tere', categoryId: 'debt' }),
+      rule({ matchType: 'contains', matchValue: 'bp', categoryId: 'fuel' }),
+    ])
+    expect(match('Generali Seg. Y Reaseg, S.a.u.')?.categoryId).toBe('home-insurance')
+    expect(match('Túnels de Barcelona i Cadí, Concessionària de la Generalitat de Catalunya, SA')).toBeNull()
+    expect(match('Deuda Tere')?.categoryId).toBe('debt')
+    expect(match('Intereses')).toBeNull()
+    expect(match('BP')?.categoryId).toBe('fuel')
+    expect(match('BPost Belgium')).toBeNull()
+  })
+
+  it('ignores accents and punctuation on both sides', () => {
+    const match = createRuleMatcher([rule({ matchType: 'contains', matchValue: 'nautic tamariu', categoryId: 'food' })])
+    expect(match('Nàutic Tamariu, S.L.')?.categoryId).toBe('food')
+  })
+})

@@ -9,12 +9,15 @@ import { formatCurrency, formatDate } from '@/lib/format'
 import { parseRevolutCSV } from '@/lib/csv-parser'
 import type { RevolutRow } from '@/lib/csv-parser'
 import { useUiCopy } from '@/lib/ui-copy'
+import { PageHeader } from '@/components/kit'
 
 interface ImportResult {
   imported: number
   skipped: number
   dupes: number
   errors: number
+  autoCategorized?: number
+  suggested?: number
 }
 
 export default function ImportarPage() {
@@ -88,37 +91,46 @@ export default function ImportarPage() {
   }
 
   return (
-    <div className="px-4 py-6 md:px-6 max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">{copy.import.title}</h1>
-        <p className="text-muted-foreground text-sm mt-1">{copy.import.subtitle}</p>
-      </div>
+    <div className="mx-auto w-full max-w-4xl space-y-7 px-4 py-8 md:px-8 md:py-10">
+      <PageHeader title={copy.import.title} subtitle={copy.import.subtitle} />
 
       {result ? (
-        <Card>
+        <Card className="animate-rise">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-500" />
+              <CheckCircle className="size-5 text-positive" />
               {copy.import.completed}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="text-center p-4 bg-green-50 dark:bg-green-950 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">{result.imported}</div>
+              <div className="rounded-xl bg-positive/10 p-4 text-center">
+                <div className="font-display figures text-3xl text-positive">{result.imported}</div>
                 <div className="text-sm text-muted-foreground">{copy.import.imported}</div>
               </div>
-              <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-950 rounded-lg">
-                <div className="text-2xl font-bold text-yellow-600">{result.dupes}</div>
+              <div className="rounded-xl bg-muted p-4 text-center">
+                <div className="font-display figures text-3xl">{result.dupes}</div>
                 <div className="text-sm text-muted-foreground">{copy.import.duplicates}</div>
               </div>
-              <div className="text-center p-4 bg-red-50 dark:bg-red-950 rounded-lg">
-                <div className="text-2xl font-bold text-red-600">{result.errors}</div>
+              <div className={`rounded-xl p-4 text-center ${result.errors > 0 ? 'bg-negative/10' : 'bg-muted'}`}>
+                <div className={`font-display figures text-3xl ${result.errors > 0 ? 'text-negative' : ''}`}>{result.errors}</div>
                 <div className="text-sm text-muted-foreground">{copy.import.errors}</div>
               </div>
             </div>
-            <div className="flex gap-3">
+            {result.imported > 0 && result.autoCategorized !== undefined && (
+              <p className="text-sm text-muted-foreground">
+                <span className="figures font-semibold text-foreground">{result.autoCategorized}</span> {copy.import.autoCategorized}
+                {' · '}
+                <span className="figures font-semibold text-foreground">{result.suggested ?? 0}</span> {copy.import.suggestedForReview}
+              </p>
+            )}
+            <div className="flex flex-wrap gap-3">
               <Button onClick={reset} variant="outline">{copy.import.importAnother}</Button>
+              {(result.suggested ?? 0) > 0 && (
+                <Button asChild variant="outline">
+                  <a href="/transactions?review=1">{copy.import.reviewSuggestions}</a>
+                </Button>
+              )}
               <Button asChild>
                 <a href="/transactions">{copy.import.viewTransactions}</a>
               </Button>
@@ -134,16 +146,18 @@ export default function ImportarPage() {
               onDragLeave={() => setDragging(false)}
               onDrop={handleDrop}
               className={`
-                border-2 border-dashed rounded-xl p-12 text-center transition-colors cursor-pointer
+                animate-rise cursor-pointer rounded-2xl border-2 border-dashed bg-card/60 p-14 text-center transition-colors
                 ${dragging
                   ? 'border-primary bg-primary/5'
-                  : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50'
+                  : 'border-border hover:border-primary/50 hover:bg-card'
                 }
               `}
               onClick={() => document.getElementById('csv-input')?.click()}
             >
-              <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
-              <p className="text-base font-medium">{copy.import.dropCsv}</p>
+              <span className="mx-auto mb-5 grid size-14 place-items-center rounded-full bg-primary/10 text-primary">
+                <Upload className="size-6" strokeWidth={1.75} />
+              </span>
+              <p className="font-display text-xl">{copy.import.dropCsv}</p>
               <p className="text-sm text-muted-foreground mt-1">{copy.import.clickBrowse}</p>
             <input
                 id="csv-input"
@@ -160,7 +174,7 @@ export default function ImportarPage() {
                   <div className="flex items-center gap-3">
                     <FileText className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <CardTitle className="text-base">{file.name}</CardTitle>
+                      <CardTitle>{file.name}</CardTitle>
                       <CardDescription>
                         {preview.length} {copy.import.validRows} · {previewSkipped} {copy.import.skipped}
                       </CardDescription>
@@ -195,7 +209,7 @@ export default function ImportarPage() {
                               {row.tipo}
                             </Badge>
                           </td>
-                          <td className={`px-3 py-2 text-right font-mono ${row.importe < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                          <td className={`figures px-3 py-2 text-right ${row.importe < 0 ? '' : 'text-positive'}`}>
                             {formatCurrency(row.importe)}
                           </td>
                         </tr>
@@ -215,7 +229,7 @@ export default function ImportarPage() {
                         </div>
                         <p className="text-sm truncate">{row.descripcion}</p>
                       </div>
-                      <span className={`text-sm font-mono font-semibold shrink-0 ${row.importe < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      <span className={`figures text-sm font-semibold shrink-0 ${row.importe < 0 ? '' : 'text-positive'}`}>
                         {formatCurrency(row.importe)}
                       </span>
                     </div>
@@ -223,7 +237,7 @@ export default function ImportarPage() {
                 </div>
 
                 {error && (
-                  <div className="flex items-center gap-2 text-red-600 text-sm">
+                  <div className="flex items-center gap-2 text-sm text-negative">
                     <AlertCircle className="h-4 w-4" />
                     {error}
                   </div>
@@ -250,7 +264,7 @@ export default function ImportarPage() {
       {/* Instructions */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">{copy.import.howToExport}</CardTitle>
+          <CardTitle>{copy.import.howToExport}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-sm space-y-2 text-muted-foreground">

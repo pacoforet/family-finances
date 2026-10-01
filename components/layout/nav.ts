@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { LayoutDashboard, Upload, List, PiggyBank, Tag, BarChart3 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -25,4 +26,19 @@ export function useSignOut() {
     router.push('/login')
     router.refresh()
   }
+}
+
+/** Number of categorization suggestions waiting for review (refreshes on 'suggestions-changed'). */
+export function useSuggestionCount() {
+  const [count, setCount] = useState(0)
+  useEffect(() => {
+    const load = () => fetch('/api/categorize/suggestions')
+      .then(r => (r.ok ? r.json() : { suggestions: [] }))
+      .then(d => setCount(d.suggestions?.length ?? 0))
+      .catch(() => {})
+    load()
+    window.addEventListener('suggestions-changed', load)
+    return () => window.removeEventListener('suggestions-changed', load)
+  }, [])
+  return count
 }

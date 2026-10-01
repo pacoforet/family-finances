@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge'
 import type { Category, MappingRule } from '@/db/schema'
 import { useUiCopy } from '@/lib/ui-copy'
 import { fetchJson } from '@/lib/fetch-json'
+import { PageHeader } from '@/components/kit'
 
 const PRESET_COLORS = [
   '#3B82F6', '#14B8A6', '#8B5CF6', '#22C55E', '#F97316',
@@ -234,22 +235,19 @@ export default function CategoriasPage() {
   }
 
   return (
-    <div className="px-4 py-6 md:px-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">{copy.categories.title}</h1>
-        <p className="text-muted-foreground text-sm">{copy.categories.subtitle}</p>
-      </div>
+    <div className="mx-auto w-full max-w-6xl space-y-7 px-4 py-8 md:px-8 md:py-10">
+      <PageHeader title={copy.categories.title} subtitle={copy.categories.subtitle} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="animate-rise grid grid-cols-1 gap-5 lg:grid-cols-3" style={{ animationDelay: '80ms' }}>
         {/* Left: Category list */}
         <Card className="lg:col-span-1">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center justify-between">
+            <CardTitle className="flex items-center justify-between">
               {copy.categories.categories}
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 px-2 text-xs"
+                className="h-7 px-2 font-sans text-xs tracking-normal"
                 onClick={() => { setShowAddCat(v => !v); setCatError(null) }}
               >
                 <Plus className="h-3.5 w-3.5 mr-1" />
@@ -290,7 +288,7 @@ export default function CategoriasPage() {
                   </div>
                 </div>
                 {catError && (
-                  <p className="text-xs text-red-600">{catError}</p>
+                  <p className="text-xs text-negative">{catError}</p>
                 )}
                 <div className="flex gap-1.5">
                   <Button size="sm" className="h-7 text-xs" onClick={addCategory} disabled={savingCat || !newCatName.trim()}>
@@ -335,7 +333,7 @@ export default function CategoriasPage() {
                       onClick={() => setEditCatIsIncome(v => !v)}
                       className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-md border transition-colors ${
                         editCatIsIncome
-                          ? 'bg-emerald-50 border-emerald-300 text-emerald-700 dark:bg-emerald-950 dark:border-emerald-700 dark:text-emerald-400'
+                          ? 'bg-positive/10 border-positive/40 text-positive'
                           : 'bg-muted border-border text-muted-foreground'
                       }`}
                     >
@@ -374,8 +372,8 @@ export default function CategoriasPage() {
                       {cat.isIncome && (
                         <span className={`shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
                           selectedCat === cat.id
-                            ? 'bg-white/20 text-white'
-                            : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400'
+                            ? 'bg-primary-foreground/20 text-primary-foreground'
+                            : 'bg-positive/12 text-positive'
                         }`}>
                           {copy.categories.income}
                         </span>
@@ -387,21 +385,21 @@ export default function CategoriasPage() {
                     }`}>
                       <button
                         onClick={e => { e.stopPropagation(); toggleIsIncome(cat) }}
-                        className={`p-1 rounded hover:bg-black/10 ${cat.isIncome ? 'text-emerald-500' : ''}`}
+                        className={`p-1 rounded hover:bg-foreground/10 ${cat.isIncome ? 'text-positive' : ''}`}
                         title={cat.isIncome ? copy.categories.markExpense : copy.categories.markIncome}
                       >
                         <TrendingUp className="h-3 w-3" />
                       </button>
                       <button
                         onClick={e => { e.stopPropagation(); startEditCat(cat) }}
-                        className="p-1 rounded hover:bg-black/10"
+                        className="p-1 rounded hover:bg-foreground/10"
                         title={copy.categories.edit}
                       >
                         <Pencil className="h-3 w-3" />
                       </button>
                       <button
                         onClick={e => { e.stopPropagation(); deleteCategory(cat) }}
-                        className="p-1 rounded hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900"
+                        className="p-1 rounded hover:bg-negative/15 hover:text-negative"
                         title={copy.categories.delete}
                       >
                         <Trash2 className="h-3 w-3" />
@@ -420,7 +418,7 @@ export default function CategoriasPage() {
             <>
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2">
                     <span
                       className="w-3 h-3 rounded-full"
                       style={{ backgroundColor: selectedCategory.color }}
@@ -439,13 +437,13 @@ export default function CategoriasPage() {
                         <div
                           key={rule.id}
                           className={`flex items-center gap-3 p-3 rounded-lg border text-sm ${
-                            !rule.isActive ? 'opacity-50 bg-muted' : ''
+                            !rule.isActive ? 'opacity-50 bg-muted' : 'bg-card'
                           }`}
                         >
                           <Badge variant="outline" className="text-xs shrink-0">
                             {MATCH_TYPE_LABELS[rule.matchType]}
                           </Badge>
-                          <span className="font-mono flex-1 truncate">{rule.matchValue}</span>
+                          <span className="flex-1 truncate font-mono text-[13px]">{rule.matchValue}</span>
                           <span className="text-muted-foreground text-xs shrink-0">P:{rule.priority}</span>
                           {rule.notes && (
                             <span className="text-muted-foreground text-xs truncate max-w-24">{rule.notes}</span>
@@ -459,14 +457,14 @@ export default function CategoriasPage() {
                               title={rule.isActive ? copy.categories.disable : copy.categories.enable}
                             >
                               {rule.isActive
-                                ? <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+                                ? <CheckCircle className="h-3.5 w-3.5 text-positive" />
                                 : <XCircle className="h-3.5 w-3.5 text-muted-foreground" />
                               }
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7 text-red-500 hover:text-red-700"
+                              className="h-7 w-7 text-negative hover:text-negative/80"
                               onClick={() => deleteRule(rule.id)}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
@@ -482,7 +480,7 @@ export default function CategoriasPage() {
               {/* Add rule form */}
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base">{copy.categories.addRule}</CardTitle>
+                  <CardTitle>{copy.categories.addRule}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -538,7 +536,7 @@ export default function CategoriasPage() {
               {/* Test rules */}
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-base">{copy.categories.testRules}</CardTitle>
+                  <CardTitle>{copy.categories.testRules}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="flex gap-2">
@@ -557,12 +555,12 @@ export default function CategoriasPage() {
                   {testResult && (
                     <div className={`p-3 rounded-lg text-sm ${
                       testResult.matched
-                        ? 'bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800'
+                        ? 'bg-positive/10 border border-positive/30'
                         : 'bg-muted border'
                     }`}>
                       {testResult.matched ? (
                         <div className="space-y-1">
-                          <p className="font-medium text-green-700 dark:text-green-400">
+                          <p className="font-medium text-positive">
                             {copy.categories.matchesCategory} {testResult.category?.name}
                           </p>
                           <p className="text-xs text-muted-foreground">

@@ -71,18 +71,18 @@ export default function SetupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50 p-6">
+    <div className="min-h-screen p-6 md:p-10">
       <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-5xl items-center">
         <div className="grid w-full gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-5">
-            <p className="text-sm font-medium uppercase tracking-[0.24em] text-emerald-700">
+            <p className="text-sm font-medium uppercase tracking-[0.24em] text-brass">
               {copy.setup.eyebrow}
             </p>
             <div className="space-y-3">
-              <h1 className="max-w-xl text-4xl font-semibold tracking-tight text-slate-900">
+              <h1 className="font-display max-w-xl text-[40px] leading-[1.05]">
                 {copy.setup.title}
               </h1>
-              <p className="max-w-xl text-base text-slate-600">
+              <p className="max-w-xl text-base text-muted-foreground">
                 {copy.setup.body}
               </p>
             </div>
@@ -95,14 +95,14 @@ export default function SetupPage() {
                   onClick={() => setStarterPreset(option.value)}
                   className={`rounded-2xl border p-4 text-left transition-colors ${
                     starterPreset === option.value
-                      ? 'border-emerald-500 bg-emerald-50'
-                      : 'border-slate-200 bg-white hover:border-slate-300'
+                      ? 'border-primary bg-accent'
+                      : 'border-border bg-card hover:border-foreground/30'
                   }`}
                 >
-                  <p className="font-medium text-slate-900">
+                  <p className="font-medium">
                     {option.value === 'blank' ? copy.setup.startBlank : copy.setup.starterTemplate}
                   </p>
-                  <p className="mt-1 text-sm text-slate-600">
+                  <p className="mt-1 text-sm text-muted-foreground">
                     {option.value === 'blank'
                       ? copy.setup.startBlankDescription
                       : copy.setup.starterTemplateDescription}
@@ -112,7 +112,7 @@ export default function SetupPage() {
             </div>
           </div>
 
-          <Card className="border-slate-200 shadow-sm">
+          <Card>
             <CardHeader>
               <CardTitle>{copy.setup.detailsTitle}</CardTitle>
               <CardDescription>
@@ -192,7 +192,7 @@ export default function SetupPage() {
                   </div>
                 </div>
 
-                <label className="flex items-start gap-3 rounded-xl border border-slate-200 p-3 text-sm">
+                <label className="flex items-start gap-3 rounded-xl border p-3 text-sm">
                   <input
                     type="checkbox"
                     className="mt-1"
@@ -205,7 +205,7 @@ export default function SetupPage() {
                   </span>
                 </label>
 
-                {error && <p className="text-sm text-red-600">{error}</p>}
+                {error && <p className="text-sm text-negative">{error}</p>}
 
                 <Button type="submit" className="w-full" disabled={saving}>
                   {saving ? copy.setup.saving : copy.setup.finish}

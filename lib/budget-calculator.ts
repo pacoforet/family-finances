@@ -33,6 +33,8 @@ export interface MonthSummary {
     budgeted: number
     actual:   number
   }
+  /** Cumulative spending at the end of each day of the month (index 0 = day 1) */
+  cumulativeByDay: number[]
 }
 
 /** Month index (year * 12 + month - 1) of the date a transaction counts in. */
@@ -132,6 +134,15 @@ export function computeMonthSummary(
   const totalActual = -spending.reduce((sum, t) => sum + budgetAmount(t), 0)
   const totalPct = totalBudgeted > 0 ? (totalActual / totalBudgeted) * 100 : 0
 
+  // Annual expenses spread from earlier months count from day 1
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate()
+  const cumulativeByDay = new Array<number>(daysInMonth).fill(0)
+  for (const t of spending) {
+    const day = inMonth(t) ? Number(String(t.budgetDate ?? t.fechaInicio).slice(8, 10)) || 1 : 1
+    cumulativeByDay[Math.min(day, daysInMonth) - 1] -= budgetAmount(t)
+  }
+  for (let i = 1; i < daysInMonth; i++) cumulativeByDay[i] += cumulativeByDay[i - 1]
+
   return {
     year,
     month,
@@ -148,6 +159,7 @@ export function computeMonthSummary(
       budgeted: round2(totalBudgeted / Math.max(householdSize, 1)),
       actual:   round2(totalActual / Math.max(householdSize, 1)),
     },
+    cumulativeByDay: cumulativeByDay.map(round2),
   }
 }
 

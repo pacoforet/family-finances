@@ -96,6 +96,12 @@ export const transactions = pgTable('transactions', {
   excludeFromBudget: boolean('exclude_from_budget').default(false).notNull(),
   splitAnnual:       boolean('split_annual').default(false).notNull(),
   budgetDate:        calendarDate('budget_date'),
+  // Pending categorization suggestion awaiting review (see lib/auto-categorize.ts)
+  suggestedCategoryId:  text('suggested_category_id').references(() => categories.id, { onDelete: 'set null' }),
+  suggestedExclude:     boolean('suggested_exclude').default(false).notNull(),
+  suggestionConfidence: numeric('suggestion_confidence', { precision: 4, scale: 3, mode: 'number' }),
+  suggestionSource:     text('suggestion_source'),
+  suggestionReason:     text('suggestion_reason'),
   createdAt:         instant('created_at').notNull(),
   updatedAt:         instant('updated_at').notNull(),
 }, (t) => [

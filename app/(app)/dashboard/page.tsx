@@ -1,29 +1,45 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, AlertTriangle, Plus, TrendingDown, TrendingUp, Users, Wallet, ArrowRight } from 'lucide-react'
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import { ArrowRight, ArrowUpRight, Plus, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { formatCurrency, formatDate, formatMonthYear, toMonthKey } from '@/lib/format'
-import { AddTransactionDialog } from '@/components/transactions/AddTransactionDialog'
-import Link from 'next/link'
-import type { MonthSummary } from '@/lib/budget-calculator'
-import type { Category } from '@/db/schema'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AddTransactionDialog } from '@/components/transactions/AddTransactionDialog'
+import { useSuggestionCount } from '@/components/layout/nav'
+import {
+  MerchantAvatar, Meter, Money, MonthSwitcher, PageHeader, PaceChart, StatusPill, fill, monthTitle,
+} from '@/components/kit'
 import { useAppSettings } from '@/components/providers/AppSettingsProvider'
+import { formatCurrency, formatDayMonth, fromMonthKey, toMonthKey } from '@/lib/format'
 import { useUiCopy } from '@/lib/ui-copy'
 import { fetchJson } from '@/lib/fetch-json'
+import type { MonthSummary } from '@/lib/budget-calculator'
+import type { Category } from '@/db/schema'
 
 export default function DashboardPage() {
+  return (
+    <Suspense>
+      <Dashboard />
+    </Suspense>
+  )
+}
+
+function Dashboard() {
   const settings = useAppSettings()
   const copy = useUiCopy()
   const now = new Date()
-  const [year, setYear]       = useState(now.getFullYear())
-  const [month, setMonth]     = useState(now.getMonth() + 1)
+  const monthParam = useSearchParams().get('month')
+  const initial = monthParam ? fromMonthKey(monthParam) : { year: now.getFullYear(), month: now.getMonth() + 1 }
+  const [year, setYear] = useState(initial.year)
+  const [month, setMonth] = useState(initial.month)
   const [summary, setSummary] = useState<MonthSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [categories, setCategories] = useState<Category[]>([])
   const [showAdd, setShowAdd] = useState(false)
+  const pendingSuggestions = useSuggestionCount()
 
   useEffect(() => {
     fetchJson('/api/categories')
@@ -31,357 +47,230 @@ export default function DashboardPage() {
       .catch(() => alert(copy.common.loadFailed))
   }, [copy])
 
-  useEffect(() => {
-    fetchJson(`/api/budget/${year}/${month}`)
-      .then(d => { setSummary(d.summary); setLoading(false) })
-      .catch(() => { setSummary(null); setLoading(false); alert(copy.common.loadFailed) })
+  const loadSummary = useCallback(() => {
+    setLoading(true)
+    return fetchJson(`/api/budget/${year}/${month}`)
+      .then(d => setSummary(d.summary))
+      .catch(() => { setSummary(null); alert(copy.common.loadFailed) })
+      .finally(() => setLoading(false))
   }, [year, month, copy])
 
-  const prevMonth = () => {
-    setLoading(true)
-    if (month === 1) { setYear(y => y - 1); setMonth(12) }
-    else setMonth(m => m - 1)
-  }
-  const nextMonth = () => {
-    setLoading(true)
-    if (month === 12) { setYear(y => y + 1); setMonth(1) }
-    else setMonth(m => m + 1)
-  }
+  useEffect(() => { loadSummary() }, [loadSummary])
+
   const isCurrentMonth = year === now.getFullYear() && month === now.getMonth() + 1
-
-  const goToCurrentMonth = () => {
-    if (isCurrentMonth) return
-    setLoading(true)
-    setYear(now.getFullYear())
-    setMonth(now.getMonth() + 1)
+  const shiftMonth = (delta: number) => {
+    const index = year * 12 + (month - 1) + delta
+    setYear(Math.floor(index / 12))
+    setMonth((index % 12) + 1)
   }
-  const overBudget = summary?.lines.filter(l => l.status === 'over') ?? []
 
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate()
+  const pace = isCurrentMonth ? now.getDate() / daysInMonth : undefined
+
+  const income = useMemo(
+    () => (summary?.income ?? []).reduce((sum, t) => sum + t.importe, 0),
+    [summary],
+  )
+  const colorById = useMemo(
+    () => new Map((summary?.lines ?? []).map(l => [l.categoryId, l.color])),
+    [summary],
+  )
   const recentTx = summary
-    ? [...summary.lines.flatMap(l => l.transactions), ...summary.uncategorized]
-        .sort((a, b) => (b.fechaInicio ?? '').localeCompare(a.fechaInicio ?? ''))
+    ? [...summary.lines.flatMap(l => l.transactions), ...summary.uncategorized, ...summary.income]
+        .sort((a, b) => String(b.fechaInicio ?? '').localeCompare(String(a.fechaInicio ?? '')))
         .slice(0, 8)
     : []
 
+  const statusLabels = { ok: copy.dashboard.onTrack, warning: copy.dashboard.watch, over: copy.dashboard.over }
+  const totals = summary?.totals
+  const over = totals ? totals.variance < 0 : false
+
   return (
-    <div className="px-4 py-6 md:px-6 space-y-6 w-full">
+    <div className="mx-auto w-full max-w-6xl space-y-8 px-4 py-8 md:px-8 md:py-10">
+      <PageHeader
+        eyebrow={settings.householdName}
+        title={copy.dashboard.title}
+        actions={
+          <>
+            <MonthSwitcher
+              year={year}
+              month={month}
+              onPrev={() => shiftMonth(-1)}
+              onNext={() => shiftMonth(1)}
+              onToday={isCurrentMonth ? undefined : () => { setYear(now.getFullYear()); setMonth(now.getMonth() + 1) }}
+              todayLabel={copy.dashboard.currentMonth}
+            />
+            <Button onClick={() => setShowAdd(true)}>
+              <Plus className="size-4" />
+              {copy.dashboard.addExpense}
+            </Button>
+          </>
+        }
+      />
 
-      {/* ── Header ───────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">{copy.dashboard.title}</h1>
-          <p className="text-sm text-muted-foreground">
-            {copy.dashboard.subtitle} {settings.householdName}
-          </p>
-        </div>
-        <Button onClick={() => setShowAdd(true)}>
-          <Plus className="h-4 w-4 mr-1.5" />
-          {copy.dashboard.addExpense}
-        </Button>
-      </div>
-
-      {/* ── Month navigator ──────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-2">
-        <Button variant="outline" size="icon" onClick={prevMonth}>
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <span className="text-lg font-medium w-32 text-center capitalize">
-          {formatMonthYear(year, month)}
-        </span>
-        <Button variant="outline" size="icon" onClick={nextMonth} disabled={isCurrentMonth}>
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-        <Button variant="outline" size="sm" onClick={goToCurrentMonth} disabled={isCurrentMonth}>
-          {copy.dashboard.currentMonth}
-        </Button>
-      </div>
-
-      {/* ── Loading ──────────────────────────────────────────────── */}
       {loading ? (
-        <>
-          {/* KPI cards skeleton */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <Card key={i}>
-                <CardContent className="pt-5 pb-4">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-2 flex-1">
-                      <Skeleton className="h-3 w-20" />
-                      <Skeleton className="h-7 w-32" />
-                      <Skeleton className="h-3 w-24" />
-                    </div>
-                    <Skeleton className="h-8 w-8 rounded-lg" />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Category + transactions skeleton */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-            <Card className="lg:col-span-3">
-              <CardHeader className="pb-3">
-                <Skeleton className="h-5 w-28" />
-              </CardHeader>
-              <CardContent className="space-y-5">
-                {[...Array(7)].map((_, i) => (
-                  <div key={i} className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Skeleton className="w-2 h-2 rounded-full" />
-                        <Skeleton className="h-4 w-24" />
-                      </div>
-                      <Skeleton className="h-4 w-20" />
-                    </div>
-                    <Skeleton className="h-1.5 w-full rounded-full" />
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-            <Card className="lg:col-span-2">
-              <CardHeader className="pb-2">
-                <Skeleton className="h-5 w-36" />
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="divide-y">
-                  {[...Array(7)].map((_, i) => (
-                    <div key={i} className="flex items-center justify-between px-6 py-2.5">
-                      <div className="flex items-center gap-2.5">
-                        <Skeleton className="w-2 h-2 rounded-full" />
-                        <div className="space-y-1">
-                          <Skeleton className="h-3.5 w-32" />
-                          <Skeleton className="h-3 w-20" />
-                        </div>
-                      </div>
-                      <Skeleton className="h-3.5 w-14" />
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </>
-
-      ) : !summary || summary.lines.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-14 gap-3">
-            <p className="text-muted-foreground text-sm">{copy.dashboard.noBudget}</p>
-            <Button asChild size="sm" variant="outline">
+        <DashboardSkeleton />
+      ) : !summary || !totals || summary.lines.length === 0 ? (
+        <Card className="animate-rise">
+          <CardContent className="flex flex-col items-center justify-center gap-4 py-16 text-center">
+            <p className="font-display text-xl">{monthTitle(year, month)}</p>
+            <p className="max-w-sm text-sm text-muted-foreground">{copy.dashboard.noBudget}</p>
+            <Button asChild variant="outline">
               <Link href="/budget">{copy.dashboard.setupBudget}</Link>
             </Button>
           </CardContent>
         </Card>
-
       ) : (
         <>
-          {/* ── Over-budget alert ──────────────────────────────────── */}
-          {overBudget.length > 0 && (
-            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-sm">
-              <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
-              <span className="text-red-800 dark:text-red-300">
-                <span className="font-semibold">{copy.dashboard.overBudget}</span>{' '}{copy.dashboard.in}{' '}
-                {overBudget.map(l => l.categoryName).join(', ')}
-              </span>
+          {/* ── Hero: spending against the budget ─────────────────────── */}
+          <section className="grid gap-4 lg:grid-cols-3">
+            <div className="surface animate-rise relative flex flex-col overflow-hidden p-6 md:p-8 lg:col-span-2" style={{ animationDelay: '60ms' }}>
+              <p className="eyebrow">{copy.dashboard.spentIn} {monthTitle(year, month).toLowerCase()}</p>
+              <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                <span className="font-display figures text-[44px] leading-none md:text-[60px]">
+                  {formatCurrency(totals.actual)}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {fill(copy.dashboard.ofBudgeted, { amount: formatCurrency(totals.budgeted) })}
+                </span>
+              </div>
+
+              <Meter value={totals.actual} max={totals.budgeted} marker={pace} className="mt-7 h-2" />
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-[13px]">
+                <span className={over ? 'font-medium text-negative' : 'font-medium text-positive'}>
+                  <span aria-hidden className="mr-1.5">{over ? '■' : '●'}</span>
+                  {fill(over ? copy.dashboard.overBy : copy.dashboard.leftToSpend, {
+                    amount: formatCurrency(Math.abs(totals.variance)),
+                  })}
+                </span>
+                <span className="figures text-muted-foreground">
+                  {totals.pct}%
+                  {pace !== undefined && (
+                    <> · {fill(copy.dashboard.dayOf, { day: now.getDate(), days: daysInMonth })}</>
+                  )}
+                </span>
+              </div>
+
+              <PaceChart
+                className="mt-auto pt-8"
+                cumulative={summary.cumulativeByDay}
+                budget={totals.budgeted}
+                upToDay={isCurrentMonth ? now.getDate() : undefined}
+                labels={{ budget: copy.dashboard.budgetLine, pace: copy.dashboard.monthPace }}
+              />
             </div>
+
+            <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
+              <Tile
+                delay={120}
+                label={copy.dashboard.income}
+                value={<Money amount={income} />}
+                hint={fill(copy.dashboard.incomeHint, { count: summary.income.length })}
+              />
+              <Tile
+                delay={170}
+                label={copy.dashboard.margin}
+                value={<Money amount={income - totals.actual} tone signed />}
+                hint={copy.dashboard.marginHint}
+              />
+              <Tile
+                delay={220}
+                label={copy.dashboard.perPerson}
+                value={<Money amount={summary.perPerson.actual} />}
+                hint={`${copy.dashboard.of} ${formatCurrency(summary.perPerson.budgeted)}`}
+              />
+            </div>
+          </section>
+
+          {/* ── Review callout ────────────────────────────────────────── */}
+          {(pendingSuggestions > 0 || summary.uncategorized.length > 0) && (
+            <Link
+              href={pendingSuggestions > 0
+                ? '/transactions?review=1'
+                : `/transactions?month=${toMonthKey(year, month)}&uncategorized=true`}
+              className="animate-rise group flex items-center gap-4 rounded-2xl border border-brass/40 bg-brass/8 px-5 py-4 transition-colors hover:bg-brass/14"
+              style={{ animationDelay: '260ms' }}
+            >
+              <span className="grid size-10 shrink-0 place-items-center rounded-full bg-brass/20 text-brass">
+                <Sparkles className="size-[18px]" strokeWidth={1.75} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[14px] font-semibold">
+                  {pendingSuggestions > 0
+                    ? copy.dashboard.suggestionsTitle
+                    : `${summary.uncategorized.length} ${summary.uncategorized.length === 1 ? copy.dashboard.uncategorizedOne : copy.dashboard.uncategorized}`}
+                </span>
+                {pendingSuggestions > 0 && (
+                  <span className="block text-[13px] text-muted-foreground">
+                    {pendingSuggestions === 1
+                      ? copy.dashboard.suggestionsBodyOne
+                      : fill(copy.dashboard.suggestionsBody, { count: pendingSuggestions })}
+                  </span>
+                )}
+              </span>
+              <span className="flex items-center gap-1 text-[13px] font-medium">
+                {copy.dashboard.reviewSuggestions}
+                <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" />
+              </span>
+            </Link>
           )}
 
-          {/* ── KPI cards ──────────────────────────────────────────── */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-
-            <Card>
-              <CardContent className="pt-5 pb-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{copy.dashboard.spent}</p>
-                    <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{formatCurrency(summary.totals.actual)}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{summary.totals.pct}% {copy.dashboard.of.toLowerCase()} {copy.dashboard.budget.toLowerCase()}</p>
-                  </div>
-                  <div className="p-2 rounded-lg bg-slate-100 dark:bg-slate-800">
-                    <Wallet className="h-4 w-4 text-slate-500" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-5 pb-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{copy.dashboard.budget}</p>
-                    <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{formatCurrency(summary.totals.budgeted)}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{copy.dashboard.monthlyTotal}</p>
-                  </div>
-                  <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950">
-                    <TrendingUp className="h-4 w-4 text-blue-500" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className={
-              summary.totals.variance >= 0
-                ? 'border-emerald-200 bg-emerald-50/40 dark:border-emerald-800 dark:bg-emerald-950/20'
-                : 'border-red-200 bg-red-50/40 dark:border-red-800 dark:bg-red-950/20'
-            }>
-              <CardContent className="pt-5 pb-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-                      {summary.totals.variance >= 0 ? copy.dashboard.remaining : copy.dashboard.over}
-                    </p>
-                    <p className={`text-2xl font-bold mt-1 font-mono tracking-tight ${
-                      summary.totals.variance >= 0
-                        ? 'text-emerald-700 dark:text-emerald-400'
-                        : 'text-red-600'
-                    }`}>
-                      {summary.totals.variance >= 0 ? '+' : ''}{formatCurrency(summary.totals.variance)}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {summary.totals.variance >= 0 ? copy.dashboard.underBudget : copy.dashboard.overBudgetLabel}
-                    </p>
-                  </div>
-                  <div className={`p-2 rounded-lg ${
-                    summary.totals.variance >= 0
-                      ? 'bg-emerald-100 dark:bg-emerald-900'
-                      : 'bg-red-100 dark:bg-red-900'
-                  }`}>
-                    {summary.totals.variance >= 0
-                      ? <TrendingDown className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                      : <AlertTriangle className="h-4 w-4 text-red-600" />
-                    }
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-5 pb-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{copy.dashboard.perPerson}</p>
-                    <p className="text-2xl font-bold mt-1 font-mono tracking-tight">{formatCurrency(summary.perPerson.actual)}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{copy.dashboard.of} {formatCurrency(summary.perPerson.budgeted)}</p>
-                  </div>
-                  <div className="p-2 rounded-lg bg-violet-50 dark:bg-violet-950">
-                    <Users className="h-4 w-4 text-violet-500" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* ── Category breakdown + Recent transactions ─────────── */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-
-            {/* Progress bars — 3 cols */}
-            <Card className="lg:col-span-3">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">{copy.dashboard.byCategory}</CardTitle>
+          {/* ── Categories + recent activity ──────────────────────────── */}
+          <section className="grid gap-4 lg:grid-cols-5">
+            <Card className="animate-rise lg:col-span-3" style={{ animationDelay: '300ms' }}>
+              <CardHeader className="pb-1">
+                <CardTitle>{copy.dashboard.byCategory}</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {summary.lines.map(line => {
-                  const pct = Math.min(line.pct, 100)
-                  const barColor =
-                    line.status === 'over'    ? '#EF4444' :
-                    line.status === 'warning' ? '#F59E0B' :
-                    line.color
-                  return (
-                    <div key={line.categoryId} className="space-y-1.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: line.color }} />
-                          <span className="text-sm font-medium truncate">{line.categoryName}</span>
-                          {line.status === 'over' && (
-                            <span className="shrink-0 text-[10px] bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400 px-1.5 py-0.5 rounded-full font-semibold">
-                              {copy.dashboard.over}
-                            </span>
-                          )}
-                          {line.status === 'warning' && (
-                            <span className="shrink-0 text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400 px-1.5 py-0.5 rounded-full font-semibold">
-                              {copy.dashboard.watch}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-right shrink-0">
-                          <span className={`font-mono text-xs font-semibold ${line.status === 'over' ? 'text-red-600' : ''}`}>
-                            {formatCurrency(line.actual)}
-                          </span>
-                          <span className="text-[11px] text-muted-foreground ml-1">
-                            / {formatCurrency(line.budgeted)}
-                          </span>
-                        </div>
+              <CardContent className="space-y-0 divide-y divide-border/70">
+                {summary.lines.map(line => (
+                  <div key={line.categoryId} className="space-y-2 py-3.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                        <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: line.color }} />
+                        <span className="truncate text-[14px] font-medium">{line.categoryName}</span>
+                        {line.status !== 'ok' && <StatusPill status={line.status} labels={statusLabels} />}
                       </div>
-                      <div className="h-1.5 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{ width: `${pct}%`, backgroundColor: barColor }}
-                        />
+                      <div className="shrink-0 text-right text-[13px]">
+                        <Money amount={line.actual} className={line.status === 'over' ? 'font-semibold text-negative' : 'font-semibold'} />
+                        <span className="figures text-muted-foreground"> / {formatCurrency(line.budgeted)}</span>
                       </div>
                     </div>
-                  )
-                })}
-
-                {/* Uncategorized row */}
-                {summary.uncategorized.length > 0 && (
-                  <div className="pt-3 border-t flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />
-                      <span className="text-sm text-amber-700 dark:text-amber-400 font-medium">
-                        {summary.uncategorized.length} {summary.uncategorized.length === 1 ? copy.dashboard.uncategorizedOne : copy.dashboard.uncategorized}
-                      </span>
-                    </div>
-                    <Link
-                      href={`/transactions?month=${toMonthKey(year, month)}&uncategorized=true`}
-                      className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-                    >
-                      {copy.dashboard.review} <ArrowRight className="h-3 w-3" />
-                    </Link>
+                    <Meter value={line.actual} max={line.budgeted} color={line.color} />
                   </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card className="animate-rise lg:col-span-2" style={{ animationDelay: '360ms' }}>
+              <CardHeader className="flex flex-row items-center justify-between pb-1">
+                <CardTitle>{copy.dashboard.recentTransactions}</CardTitle>
+                <Link
+                  href={`/transactions?month=${toMonthKey(year, month)}`}
+                  className="flex items-center gap-1 text-[12.5px] text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {copy.dashboard.viewAll} <ArrowUpRight className="size-3.5" />
+                </Link>
+              </CardHeader>
+              <CardContent className="px-3">
+                {recentTx.length === 0 ? (
+                  <p className="px-3 py-8 text-center text-sm text-muted-foreground">{copy.dashboard.nothingRecent}</p>
+                ) : (
+                  <ul>
+                    {recentTx.map(tx => (
+                      <li key={tx.id} className="flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-muted/60">
+                        <MerchantAvatar name={tx.descripcion} color={tx.categoryId ? colorById.get(tx.categoryId) : null} size={34} />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[13.5px] leading-snug">{tx.descripcion}</p>
+                          <p className="text-[11.5px] text-muted-foreground">{formatDayMonth(String(tx.fechaInicio))}</p>
+                        </div>
+                        <Money amount={tx.importe} tone signed className="text-[13px] font-semibold" />
+                      </li>
+                    ))}
+                  </ul>
                 )}
               </CardContent>
             </Card>
-
-            {/* Recent transactions — 2 cols */}
-            <Card className="lg:col-span-2">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">{copy.dashboard.recentTransactions}</CardTitle>
-                  <Link
-                    href={`/transactions?month=${toMonthKey(year, month)}`}
-                    className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
-                  >
-                    {copy.dashboard.viewAll} <ArrowRight className="h-3 w-3" />
-                  </Link>
-                </div>
-              </CardHeader>
-              <CardContent className="p-0">
-                <div className="divide-y">
-                  {recentTx.map(tx => {
-                    const catLine = summary.lines.find(l => l.categoryId === tx.categoryId)
-                    return (
-                      <div key={tx.id} className="flex items-center justify-between px-6 py-2.5 hover:bg-muted/30 transition-colors">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <span
-                            className="w-2 h-2 rounded-full shrink-0"
-                            style={{ backgroundColor: catLine?.color ?? '#9CA3AF' }}
-                          />
-                          <div className="min-w-0">
-                            <p className="text-sm truncate leading-snug">{tx.descripcion}</p>
-                            <p className="text-[11px] text-muted-foreground">{formatDate(tx.fechaInicio)}</p>
-                          </div>
-                        </div>
-                        <span className={`text-xs font-mono font-semibold ml-3 shrink-0 ${
-                          tx.importe < 0 ? 'text-red-600' : 'text-emerald-600'
-                        }`}>
-                          {formatCurrency(tx.importe)}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          </section>
         </>
       )}
 
@@ -389,13 +278,48 @@ export default function DashboardPage() {
         open={showAdd}
         onOpenChange={setShowAdd}
         categories={categories}
-        onSaved={() => {
-          setLoading(true)
-          fetchJson(`/api/budget/${year}/${month}`)
-            .then(d => { setSummary(d.summary); setLoading(false) })
-            .catch(() => { setLoading(false); alert(copy.common.loadFailed) })
-        }}
+        onSaved={() => { loadSummary() }}
       />
+    </div>
+  )
+}
+
+function Tile({ label, value, hint, delay }: { label: string; value: React.ReactNode; hint: string; delay: number }) {
+  return (
+    <div className="surface animate-rise flex flex-col justify-between gap-1 p-5" style={{ animationDelay: `${delay}ms` }}>
+      <p className="eyebrow">{label}</p>
+      <p className="font-display text-[26px] leading-tight">{value}</p>
+      <p className="text-[12px] text-muted-foreground">{hint}</p>
+    </div>
+  )
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="surface space-y-5 p-8 lg:col-span-2">
+          <Skeleton className="h-3 w-32" />
+          <Skeleton className="h-14 w-72" />
+          <Skeleton className="h-2 w-full" />
+        </div>
+        <div className="grid gap-4">
+          {[0, 1, 2].map(i => (
+            <div key={i} className="surface space-y-2 p-5">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-7 w-32" />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="grid gap-4 lg:grid-cols-5">
+        <div className="surface space-y-5 p-6 lg:col-span-3">
+          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
+        </div>
+        <div className="surface space-y-4 p-6 lg:col-span-2">
+          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
+        </div>
+      </div>
     </div>
   )
 }
