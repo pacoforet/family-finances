@@ -73,7 +73,7 @@ export default function SetupPage() {
   return (
     <div className="min-h-screen p-6 md:p-10">
       <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-5xl items-center">
-        <div className="grid w-full gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <div className="grid w-full grid-cols-1 gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-5">
             <p className="text-sm font-medium uppercase tracking-[0.24em] text-brass">
               {copy.setup.eyebrow}

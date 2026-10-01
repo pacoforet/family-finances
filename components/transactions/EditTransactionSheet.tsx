@@ -165,7 +165,7 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
 
   return (
     <Sheet open onOpenChange={open => { if (!open) onClose() }}>
-      <SheetContent className="p-0 gap-0 flex flex-col sm:max-w-sm overflow-hidden">
+      <SheetContent className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-sm">
 
         {/* Accessible title for screen readers */}
         <SheetTitle className="sr-only">{copy.editTx.title}</SheetTitle>
@@ -272,7 +272,7 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
               onChange={e => setNotes(e.target.value)}
               placeholder={copy.editTx.addNote}
               rows={2}
-              className="resize-none text-sm"
+              className="resize-none text-base md:text-sm"
             />
           </div>
 
@@ -348,7 +348,7 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
                 <select
                   value={budgetMonth}
                   onChange={e => setBudgetMonth(parseInt(e.target.value))}
-                  className="flex-1 text-sm rounded-md border border-brass/40 px-2 py-1.5 bg-background text-foreground focus:outline-none"
+                  className="flex-1 text-base md:text-sm rounded-md border border-brass/40 px-2 py-1.5 bg-background text-foreground focus:outline-none"
                 >
                   {Array.from({ length: 12 }, (_, i) => (
                     <option key={i} value={i + 1}>{monthName(i + 1)}</option>
@@ -358,7 +358,7 @@ export function EditTransactionSheet({ transaction: tx, categories, onClose, onS
                   type="number"
                   value={budgetYear}
                   onChange={e => setBudgetYear(parseInt(e.target.value))}
-                  className="w-20 text-sm rounded-md border border-brass/40 px-2 py-1.5 bg-background text-foreground focus:outline-none"
+                  className="w-20 text-base md:text-sm rounded-md border border-brass/40 px-2 py-1.5 bg-background text-foreground focus:outline-none"
                   min={2020}
                   max={2035}
                 />

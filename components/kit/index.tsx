@@ -239,3 +239,34 @@ export function PaceChart({
     </div>
   )
 }
+
+/**
+ * One budget line: name, status, spent vs budgeted and a meter. On phones the
+ * status and the budgeted amount move under the meter so the name keeps room.
+ */
+export function CategoryLine({ line, labels }: {
+  line: { categoryName: string; color: string; actual: number; budgeted: number; status: 'ok' | 'warning' | 'over' }
+  labels: { ok: string; warning: string; over: string; of: string }
+}) {
+  const showStatus = line.status !== 'ok'
+  return (
+    <div className="space-y-2 py-3.5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-1 items-center gap-2.5">
+          <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: line.color }} />
+          <span className="truncate text-[14px] font-medium">{line.categoryName}</span>
+          {showStatus && <span className="hidden sm:inline-flex"><StatusPill status={line.status} labels={labels} /></span>}
+        </div>
+        <div className="shrink-0 text-right text-[13px]">
+          <Money amount={line.actual} className={line.status === 'over' ? 'font-semibold text-negative' : 'font-semibold'} />
+          <span className="figures hidden text-muted-foreground sm:inline"> / {formatCurrency(line.budgeted)}</span>
+        </div>
+      </div>
+      <Meter value={line.actual} max={line.budgeted} color={line.color} />
+      <div className="flex items-center justify-between gap-2 text-[11.5px] text-muted-foreground sm:hidden">
+        <span>{showStatus && <StatusPill status={line.status} labels={labels} />}</span>
+        <span className="figures">{labels.of} {formatCurrency(line.budgeted)}</span>
+      </div>
+    </div>
+  )
+}

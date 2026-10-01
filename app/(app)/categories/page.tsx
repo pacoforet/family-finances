@@ -267,7 +267,7 @@ export default function CategoriasPage() {
                     value={newCatName}
                     onChange={e => setNewCatName(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && addCategory()}
-                    className="h-8 text-sm"
+                    className="h-8 text-base md:text-sm"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -311,7 +311,7 @@ export default function CategoriasPage() {
                       value={editCatName}
                       onChange={e => setEditCatName(e.target.value)}
                       onKeyDown={e => { if (e.key === 'Enter') saveEditCat(cat); if (e.key === 'Escape') cancelEditCat() }}
-                      className="h-7 text-sm"
+                      className="h-7 text-base md:text-sm"
                     />
                     <div className="flex flex-wrap gap-1">
                       {PRESET_COLORS.map(color => (
@@ -379,8 +379,8 @@ export default function CategoriasPage() {
                         </span>
                       )}
                     </button>
-                    {/* Edit / delete / income-toggle buttons — visible on hover */}
-                    <div className={`flex gap-0.5 pr-1 opacity-0 group-hover:opacity-100 transition-opacity ${
+                    {/* Edit / delete / income-toggle buttons — visible on hover (always on touch screens) */}
+                    <div className={`flex gap-0.5 pr-1 transition-opacity md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100 ${
                       selectedCat === cat.id ? 'text-primary-foreground' : ''
                     }`}>
                       <button

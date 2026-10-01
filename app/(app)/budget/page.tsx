@@ -316,7 +316,7 @@ export default function PresupuestoPage() {
               return (
                 <div
                   key={cat.id}
-                  className={`relative flex items-center justify-between px-6 py-3 transition-colors hover:bg-muted/30 ${
+                  className={`relative flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-muted/30 sm:px-6 ${
                     idx < sortedExpenseCats.length - 1 ? 'border-b' : ''
                   }`}
                 >
@@ -327,25 +327,25 @@ export default function PresupuestoPage() {
                       style={{ width: `${pct}%`, backgroundColor: cat.color }}
                     />
                   )}
-                  <div className="flex items-center gap-3 min-w-0 z-10">
-                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: cat.color }} />
-                    <span className="font-medium text-sm">{cat.name}</span>
+                  <div className="z-10 flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
+                    <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: cat.color }} />
+                    <span className="truncate text-sm font-medium">{cat.name}</span>
                     {pct > 0 && (
-                      <span className="figures text-[11px] text-muted-foreground">
+                      <span className="figures shrink-0 text-[11px] text-muted-foreground">
                         {pct.toFixed(0)}%
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 z-10">
+                  <div className="z-10 flex shrink-0 items-center gap-2">
                     <Input
                       type="number"
                       step="0.01"
                       min="0"
                       value={edits[cat.id] ?? '0'}
                       onChange={e => setEdits(prev => ({ ...prev, [cat.id]: e.target.value }))}
-                      className="figures h-9 w-32 text-right text-[14px]"
+                      className="figures h-9 w-24 text-right text-base sm:w-32 md:text-[14px]"
                     />
-                    <span className="w-8 text-[12px] text-muted-foreground">{settings.defaultCurrency}</span>
+                    <span className="hidden w-8 text-[12px] text-muted-foreground sm:inline">{settings.defaultCurrency}</span>
                   </div>
                 </div>
               )

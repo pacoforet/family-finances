@@ -42,7 +42,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="grid min-h-screen md:grid-cols-[1.1fr_1fr]">
+    <div className="grid min-h-screen grid-cols-1 md:grid-cols-[1.1fr_1fr]">
       {/* Brand panel: the same dark spine as the app sidebar */}
       <aside className="relative hidden flex-col justify-between overflow-hidden bg-sidebar p-12 text-sidebar-foreground md:flex">
         <span className="font-display grid size-14 place-items-center rounded-full border border-sidebar-primary/50 text-[18px] italic text-sidebar-primary">

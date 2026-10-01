@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { AddTransactionDialog } from '@/components/transactions/AddTransactionDialog'
 import { useSuggestionCount } from '@/components/layout/nav'
 import {
-  MerchantAvatar, Meter, Money, MonthSwitcher, PageHeader, PaceChart, StatusPill, fill, monthTitle,
+  CategoryLine, MerchantAvatar, Meter, Money, MonthSwitcher, PageHeader, PaceChart, fill, monthTitle,
 } from '@/components/kit'
 import { useAppSettings } from '@/components/providers/AppSettingsProvider'
 import { formatCurrency, formatDayMonth, toMonthKey } from '@/lib/format'
@@ -141,7 +141,7 @@ function DashboardContent({ initial }: { initial: InitialMonth }) {
       ) : (
         <>
           {/* ── Hero: spending against the budget ─────────────────────── */}
-          <section className="grid gap-4 lg:grid-cols-3">
+          <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div className="surface animate-rise relative flex flex-col overflow-hidden p-6 md:p-8 lg:col-span-2" style={{ animationDelay: '60ms' }}>
               <p className="eyebrow">{copy.dashboard.spentIn} {monthTitle(year, month).toLowerCase()}</p>
               <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1">
@@ -178,7 +178,7 @@ function DashboardContent({ initial }: { initial: InitialMonth }) {
               />
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:grid-cols-1">
               <Tile
                 delay={120}
                 label={copy.dashboard.income}
@@ -234,28 +234,13 @@ function DashboardContent({ initial }: { initial: InitialMonth }) {
           )}
 
           {/* ── Categories + recent activity ──────────────────────────── */}
-          <section className="grid gap-4 lg:grid-cols-5">
+          <section className="grid grid-cols-1 gap-4 lg:grid-cols-5">
             <Card className="animate-rise lg:col-span-3" style={{ animationDelay: '300ms' }}>
               <CardHeader className="pb-1">
                 <CardTitle>{copy.dashboard.byCategory}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-0 divide-y divide-border/70">
-                {summary.lines.map(line => (
-                  <div key={line.categoryId} className="space-y-2 py-3.5">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                        <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: line.color }} />
-                        <span className="truncate text-[14px] font-medium">{line.categoryName}</span>
-                        {line.status !== 'ok' && <StatusPill status={line.status} labels={statusLabels} />}
-                      </div>
-                      <div className="shrink-0 text-right text-[13px]">
-                        <Money amount={line.actual} className={line.status === 'over' ? 'font-semibold text-negative' : 'font-semibold'} />
-                        <span className="figures text-muted-foreground"> / {formatCurrency(line.budgeted)}</span>
-                      </div>
-                    </div>
-                    <Meter value={line.actual} max={line.budgeted} color={line.color} />
-                  </div>
-                ))}
+                {summary.lines.map(line => <CategoryLine key={line.categoryId} line={line} labels={{ ...statusLabels, of: copy.dashboard.of }} />)}
               </CardContent>
             </Card>
 
@@ -315,13 +300,13 @@ function Tile({ label, value, hint, delay }: { label: string; value: React.React
 function DashboardSkeleton() {
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="surface space-y-5 p-8 lg:col-span-2">
           <Skeleton className="h-3 w-32" />
           <Skeleton className="h-14 w-72" />
           <Skeleton className="h-2 w-full" />
         </div>
-        <div className="grid gap-4">
+        <div className="grid grid-cols-1 gap-4">
           {[0, 1, 2].map(i => (
             <div key={i} className="surface space-y-2 p-5">
               <Skeleton className="h-3 w-20" />
@@ -330,7 +315,7 @@ function DashboardSkeleton() {
           ))}
         </div>
       </div>
-      <div className="grid gap-4 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         <div className="surface space-y-5 p-6 lg:col-span-3">
           {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
         </div>

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Meter, Money, MonthSwitcher, PageHeader, StatusPill, fill } from '@/components/kit'
+import { CategoryLine, Money, MonthSwitcher, PageHeader, fill } from '@/components/kit'
 import { formatCurrency, monthLabel } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import {
@@ -173,7 +173,7 @@ function Reports({ initial }: { initial: InitialMonth }) {
       </div>
 
       {loading ? (
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           {[0, 1, 2, 3].map(i => <div key={i} className="surface space-y-2 p-5"><Skeleton className="h-3 w-20" /><Skeleton className="h-7 w-28" /></div>)}
           <div className="surface h-72 md:col-span-4" />
         </div>
@@ -194,26 +194,11 @@ function Reports({ initial }: { initial: InitialMonth }) {
                 hint={`${t.of} ${formatCurrency(summary.perPerson.budgeted)}`} />
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-5">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
               <Card className="animate-rise lg:col-span-3" style={{ animationDelay: '260ms' }}>
                 <CardHeader className="pb-1"><CardTitle>{t.byCategory}</CardTitle></CardHeader>
                 <CardContent className="divide-y divide-border/70">
-                  {sortedLines.map(l => (
-                    <div key={l.categoryId} className="space-y-2 py-3.5">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex min-w-0 flex-1 items-center gap-2.5">
-                          <span className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: l.color }} />
-                          <span className="truncate text-[14px] font-medium">{l.categoryName}</span>
-                          {l.status !== 'ok' && <StatusPill status={l.status} labels={statusLabels} />}
-                        </div>
-                        <div className="shrink-0 text-right text-[13px]">
-                          <Money amount={l.actual} className={l.status === 'over' ? 'font-semibold text-negative' : 'font-semibold'} />
-                          <span className="figures text-muted-foreground"> / {formatCurrency(l.budgeted)}</span>
-                        </div>
-                      </div>
-                      <Meter value={l.actual} max={l.budgeted} color={l.color} />
-                    </div>
-                  ))}
+                  {sortedLines.map(l => <CategoryLine key={l.categoryId} line={l} labels={{ ...statusLabels, of: t.of }} />)}
                 </CardContent>
               </Card>
 
@@ -264,7 +249,7 @@ function Reports({ initial }: { initial: InitialMonth }) {
         )
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Kpi delay={100} label={t.totalSpent} value={<Money amount={yearTotal} />}
               hint={fill(t.monthsOver, { count: monthsOver, total: monthsWithData.length })} />
             <Kpi delay={140} label={t.monthlyAverage} value={<Money amount={yearAvg} />}
