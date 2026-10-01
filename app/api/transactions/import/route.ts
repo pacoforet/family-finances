@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/db'
 import { importBatches, mappingRules, transactions } from '@/db/schema'
 import { eq, inArray } from 'drizzle-orm'
-import { parseRevolutCSV, computeDedupHash, computeLegacyDedupHash } from '@/lib/csv-parser'
+import { parseRevolutCSV, computeDedupHash, computeLegacyDedupHash, movementKey } from '@/lib/csv-parser'
 import { createRuleMatcher } from '@/lib/category-mapper'
 import { v4 as uuidv4 } from 'uuid'
 import { withApiErrors } from '@/lib/api'
@@ -10,6 +10,29 @@ import { withApiErrors } from '@/lib/api'
 // A year of bank statements is well under 1 MB; anything bigger is a mistake.
 const MAX_FILE_BYTES = 5 * 1024 * 1024
 const HASH_LOOKUP_CHUNK = 1000
+
+/**
+ * Identity keys of stored movements on the given start times, so a re-exported
+ * movement whose description changed is still recognized. `exact` holds
+ * time|amount|balance; `timeAmount` holds time|amount and is only consulted
+ * when one side has no balance, so two identical same-second charges with
+ * different balances are never confused.
+ */
+async function findExistingMovements(fechas: string[]) {
+  const exact = new Set<string>()
+  const timeAmount = new Set<string>()
+  for (let i = 0; i < fechas.length; i += HASH_LOOKUP_CHUNK) {
+    const rows = await db
+      .select({ fechaInicio: transactions.fechaInicio, importe: transactions.importe, saldo: transactions.saldo })
+      .from(transactions)
+      .where(inArray(transactions.fechaInicio, fechas.slice(i, i + HASH_LOOKUP_CHUNK)))
+    for (const row of rows) {
+      exact.add(movementKey(row.fechaInicio, row.importe, row.saldo))
+      timeAmount.add(movementKey(row.fechaInicio, row.importe, null))
+    }
+  }
+  return { exact, timeAmount }
+}
 
 /** Returns which of the given hashes are already stored. */
 async function findExistingHashes(hashes: string[]): Promise<Set<string>> {
@@ -49,18 +72,26 @@ export const POST = withApiErrors(async (request: NextRequest) => {
   const existingHashes = await findExistingHashes([
     ...new Set(hashed.flatMap(h => [h.hash, h.legacyHash])),
   ])
+  const existingMovements = await findExistingMovements([...new Set(valid.map(row => row.fechaInicio))])
 
   const batchId = uuidv4()
   const rowsToInsert: typeof transactions.$inferInsert[] = []
 
   for (const { row, hash, legacyHash } of hashed) {
-    if (existingHashes.has(hash) || existingHashes.has(legacyHash)) {
+    const isKnown = existingHashes.has(hash) || existingHashes.has(legacyHash) ||
+      existingMovements.exact.has(movementKey(row.fechaInicio, row.importe, row.saldo)) ||
+      // A stored row without balance, or a file row without balance: time and amount decide
+      existingMovements.exact.has(movementKey(row.fechaInicio, row.importe, null)) ||
+      (row.saldo === null && existingMovements.timeAmount.has(movementKey(row.fechaInicio, row.importe, null)))
+    if (isKnown) {
       dupes++
       skipped.push({ row: row as unknown as Record<string, string>, reason: 'Duplicate row' })
       continue
     }
 
     existingHashes.add(hash)
+    existingMovements.exact.add(movementKey(row.fechaInicio, row.importe, row.saldo))
+    existingMovements.timeAmount.add(movementKey(row.fechaInicio, row.importe, null))
 
     const categoryId = match(row.descripcion)?.categoryId ?? null
 

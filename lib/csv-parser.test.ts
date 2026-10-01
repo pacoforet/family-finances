@@ -1,6 +1,6 @@
 import { createHash } from 'crypto'
 import { describe, expect, it } from 'vitest'
-import { computeDedupHash, computeLegacyDedupHash, parseAmount, parseRevolutCSV } from './csv-parser'
+import { computeDedupHash, computeLegacyDedupHash, movementKey, parseAmount, parseRevolutCSV } from './csv-parser'
 
 describe('parseAmount', () => {
   it.each([
@@ -73,5 +73,20 @@ describe('dedup hashes', () => {
       .update([row.fechaInicio, row.descripcion, String(row.importe), row.tipo].join('|'))
       .digest('hex')
     expect(computeLegacyDedupHash(row)).toBe(original)
+  })
+})
+
+describe('reverted rows and movement identity', () => {
+  it('skips rows reverted as DEVUELTO', () => {
+    const csv = 'Tipo,Producto,Fecha de inicio,Fecha de finalización,Descripción,Importe,Comisión,Divisa,State,Saldo\n' +
+      'Pago con tarjeta,Actual,2026-03-03 19:32:47,,Bolt,-17.30,0.00,EUR,DEVUELTO,\n'
+    const result = parseRevolutCSV(csv)
+    expect(result.valid).toHaveLength(0)
+    expect(result.skipped).toHaveLength(1)
+  })
+
+  it('identifies a movement by time, amount and balance regardless of description', () => {
+    expect(movementKey('2026-02-05 10:10:15', -4, 77.28)).toBe('2026-02-05 10:10:15|-4.00|77.28')
+    expect(movementKey('2026-02-05 10:10:15.000', -4, null)).toBe('2026-02-05 10:10:15|-4.00|')
   })
 })

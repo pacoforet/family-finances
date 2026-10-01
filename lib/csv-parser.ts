@@ -50,7 +50,8 @@ const COLUMN_MAP: Record<string, keyof RevolutRow> = {
   'balance':               'saldo',
 }
 
-const REVERTED_STATES = new Set(['REVERTED', 'REVERTIDO'])
+// Spanish exports call a reverted charge DEVUELTO
+const REVERTED_STATES = new Set(['REVERTED', 'REVERTIDO', 'DEVUELTO'])
 const PENDING_STATES = new Set(['PENDING', 'PENDIENTE'])
 const SAVINGS_PRODUCTS = new Set(['depósito', 'deposito', 'deposit', 'savings'])
 const INTEREST_TYPES = new Set(['intereses', 'interest'])
@@ -196,3 +197,14 @@ export function computeLegacyDedupHash(row: RevolutRow): string {
   ].join('|')
   return createHash('sha256').update(content).digest('hex')
 }
+
+/**
+ * Identity of a bank movement that survives merchant renames: Revolut may
+ * export the same charge as "Suma Alella" one month and "Suma" the next, which
+ * changes the description-based hash. Start time, amount and running balance
+ * still pin down the movement.
+ */
+export function movementKey(fechaInicio: string, importe: number, saldo: number | null): string {
+  return `${fechaInicio.slice(0, 19)}|${importe.toFixed(2)}|${saldo === null ? '' : saldo.toFixed(2)}`
+}
+
